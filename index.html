@@ -246,6 +246,33 @@ body{
 .seg.small{height:34px}
 .unit{font:600 14px/1 var(--silk);letter-spacing:.1em;color:#9A8250;align-self:end;padding-bottom:9px}
 
+/* 3つのロック（この盤面の主役） */
+.locks{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-content:center}
+.lock{
+  display:grid;justify-items:center;gap:12px;padding:26px 10px 20px;
+  background:#0A0905;border-radius:8px;
+  box-shadow:inset 0 1px 5px rgba(0,0,0,.9),inset 0 0 0 1px #4A1712;
+  transition:box-shadow .25s linear,background .25s linear;
+}
+.lock svg{width:72px;height:72px;display:block;overflow:visible}
+.lock .shackle{fill:none;stroke:var(--red);stroke-width:9;transition:stroke .25s linear,transform .35s cubic-bezier(.2,1.4,.4,1)}
+.lock .body{fill:var(--red);transition:fill .25s linear}
+.lock b{font:600 13px/1 var(--silk);letter-spacing:.22em;color:var(--label)}
+.lock i{font:600 11px/1 var(--mono);letter-spacing:.18em;color:#FF8B72;font-style:normal}
+.lock.open{
+  background:#05140B;
+  box-shadow:inset 0 1px 5px rgba(0,0,0,.9),inset 0 0 0 1px #1F5C38,0 0 26px rgba(70,208,126,.2);
+}
+.lock.open .shackle{stroke:var(--green);transform:translate(10px,-6px) rotate(14deg);transform-origin:72% 62%}
+.lock.open .body{fill:var(--green)}
+.lock.open i{color:#8CE8B2}
+.lock.just{animation:lockPop .55s cubic-bezier(.2,1.5,.4,1)}
+@keyframes lockPop{0%{transform:scale(1)}45%{transform:scale(1.09)}100%{transform:scale(1)}}
+
+/* 誤操作は軽く弾くだけ（ペナルティは作らない） */
+.panel.reject{animation:rejectShake .22s ease-out}
+@keyframes rejectShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
 /* 完了オーバーレイ */
 .done-veil{
   position:absolute;inset:0;z-index:5;display:none;
@@ -254,24 +281,25 @@ body{
 }
 .done-veil.show{display:flex;animation:fadein .35s ease-out}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
-.done-veil .big{font:600 46px/1 var(--silk);letter-spacing:.14em;color:var(--green);text-shadow:0 0 26px rgba(70,208,126,.55)}
+.done-veil .big{font:700 92px/1 var(--jp);letter-spacing:.08em;color:#5BE894;text-shadow:0 0 40px rgba(70,208,126,.7),0 0 90px rgba(70,208,126,.3)}
 .done-veil .sub{font:500 12px/1.7 var(--mono);letter-spacing:.14em;color:#7FA98F;text-align:center}
 
 /* 警報・エラー —— 表示部の中だけを覆う（操作は続けられる） */
 .alert-veil{
   position:absolute;inset:0;z-index:6;display:none;
-  flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  /* ロックが主役なので、警報表示は下部の一行に逃がして中央を空ける */
+  flex-direction:row;align-items:baseline;justify-content:center;gap:16px;
+  padding-bottom:16px;
   pointer-events:none;
-  /* 濃くしすぎると圧力・温度が読めなくなる。数値が透ける濃さに留める */
-  background:radial-gradient(ellipse at center,rgba(62,8,4,.42),rgba(24,3,2,.60));
+  background:linear-gradient(180deg,rgba(62,8,4,.20) 40%,rgba(62,8,4,.52));
 }
-.alert-veil.show{display:flex}
+.alert-veil.show{display:flex;align-items:flex-end}
 .alert-veil .big{
-  font:700 64px/1 var(--silk);letter-spacing:.18em;color:var(--red);
-  text-shadow:0 0 32px rgba(255,59,36,.85),0 0 70px rgba(255,59,36,.4);
+  font:700 32px/1 var(--silk);letter-spacing:.2em;color:var(--red);
+  text-shadow:0 0 24px rgba(255,59,36,.9);
   animation:alertBlink .48s steps(1,end) infinite;
 }
-.alert-veil .sub{font:600 15px/1 var(--mono);letter-spacing:.22em;color:#FFB0A2}
+.alert-veil .sub{font:600 14px/1 var(--mono);letter-spacing:.2em;color:#FFB0A2;padding-bottom:2px}
 @keyframes alertBlink{50%{opacity:.12}}
 
 /* 解消したときの緑 */
@@ -313,7 +341,7 @@ body{
 .sv-model{font:600 78px/1 var(--silk);letter-spacing:.22em;color:#E4E0D2;text-shadow:0 2px 0 rgba(0,0,0,.6)}
 .sv-title{margin-top:14px;font:600 14px/1 var(--silk);letter-spacing:.42em;color:var(--label-dim);text-transform:uppercase}
 .sv-rule{width:200px;height:1px;background:#3A3A33;margin:32px 0}
-.sv-task{font:600 27px/1.5 var(--jp);color:var(--amber);text-shadow:0 0 22px rgba(255,165,31,.3)}
+.sv-task{text-align:center;font:600 27px/1.5 var(--jp);color:var(--amber);text-shadow:0 0 22px rgba(255,165,31,.3)}
 .sv-note{margin-top:16px;font:400 13px/1.8 var(--jp);color:#7A7768;text-align:center}
 .sv-btn{
   margin-top:36px;width:280px;height:80px;border:0;cursor:pointer;border-radius:8px;
@@ -485,14 +513,8 @@ body{
       <!-- ================= 表示部 ================= -->
       <div class="screen">
         <div class="lamps">
-          <div class="lamp" data-c="a" id="lampA"><span class="bulb"></span><span class="cap">A</span></div>
-          <div class="lamp" data-c="a" id="lampB"><span class="bulb"></span><span class="cap">B</span></div>
-          <div class="lamp" data-c="a" id="lampC"><span class="bulb"></span><span class="cap">C</span></div>
-          <div class="lamp" data-c="a" id="lampD"><span class="bulb"></span><span class="cap">D</span></div>
-          <span class="lamp-sep"></span>
-          <div class="lamp" data-c="g" id="lampPWR"><span class="bulb"></span><span class="cap">PWR</span></div>
-          <div class="lamp" data-c="r" id="lampALM"><span class="bulb"></span><span class="cap">ALM</span></div>
-          <div class="lamp" data-c="g" id="lampRDY"><span class="bulb"></span><span class="cap">RDY</span></div>
+          <div class="lamp" data-c="r" id="lampALM"><span class="bulb"></span><span class="cap">ALARM</span></div>
+          <div class="lamp" data-c="g" id="lampRDY"><span class="bulb"></span><span class="cap">UNLOCKED</span></div>
         </div>
 
         <div class="statusbar">
@@ -510,29 +532,10 @@ body{
           </span>
         </div>
 
-        <div class="gauges">
-          <div class="gauge">
-            <span class="tag">
-              <b>Pressure</b><i>RANGE 0–60</i>
-              <span class="bar" id="barPress"><span></span></span>
-            </span>
-            <span class="seg big" id="segPress"></span>
-            <span class="unit">kPa</span>
-          </div>
-          <div class="gauge">
-            <span class="tag">
-              <b>Temp</b><i>LIMIT 85</i>
-              <span class="bar" id="barTemp"><span></span></span>
-            </span>
-            <span class="seg big" id="segTemp"></span>
-            <span class="unit">&deg;C</span>
-          </div>
-        </div>
-
-        <div class="minis">
-          <div class="mini"><span class="cap">SEQ</span><span class="seg small" id="segSeq"></span></div>
-          <div class="mini"><span class="cap">DIAL</span><span class="seg small" id="segDial"></span></div>
-          <div class="mini"><span class="cap">SET-P</span><span class="seg small" id="segSetp"></span></div>
+        <div class="locks" id="locks">
+          <div class="lock"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="shackle" d="M30 48 V32 a20 20 0 0 1 40 0 V48" stroke-linecap="round"/><rect class="body" x="18" y="48" width="64" height="40" rx="7"/></svg><b>LOCK 1</b><i>LOCKED</i></div>
+          <div class="lock"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="shackle" d="M30 48 V32 a20 20 0 0 1 40 0 V48" stroke-linecap="round"/><rect class="body" x="18" y="48" width="64" height="40" rx="7"/></svg><b>LOCK 2</b><i>LOCKED</i></div>
+          <div class="lock"><svg viewBox="0 0 100 100" aria-hidden="true"><path class="shackle" d="M30 48 V32 a20 20 0 0 1 40 0 V48" stroke-linecap="round"/><rect class="body" x="18" y="48" width="64" height="40" rx="7"/></svg><b>LOCK 3</b><i>LOCKED</i></div>
         </div>
 
         <div class="alert-veil" id="alertVeil">
@@ -545,7 +548,7 @@ body{
         </div>
 
         <div class="done-veil" id="doneVeil">
-          <div class="big">SYSTEM READY</div>
+          <div class="big">クリア！</div>
           <div class="sub" id="doneSub"></div>
         </div>
       </div>
@@ -626,8 +629,8 @@ body{
       <div class="sv-model">X-42</div>
       <div class="sv-title">Pressure Control Unit</div>
       <span class="sv-rule"></span>
-      <div class="sv-task">この機械を正常稼働させてください</div>
-      <div class="sv-note">説明書はありません。<br>スマートグラスの指示に従って操作してください。</div>
+      <div class="sv-task">3つのロックを解除して<br>アラートを止めて！</div>
+      <div class="sv-note">どのボタンを押すかは、スマートグラスが教えてくれます。<br>わからなければ声に出して聞いてください。</div>
       <button class="sv-btn" id="startBtn">START</button>
     </div>
 
@@ -740,7 +743,11 @@ var SFX={
   clear:function(){[784,988,1175].forEach(function(f,i){setTimeout(function(){beep(f,.13,.1,"triangle")},i*85)});
                    setTimeout(function(){beep(1568,.3,.09,"triangle")},255)},
   done:function(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){beep(f,.16,.09,"triangle")},i*130)})},
-  recover:function(){beep(523,.12,.09,"triangle");setTimeout(function(){beep(784,.24,.09,"triangle")},110)}
+  recover:function(){beep(523,.12,.09,"triangle");setTimeout(function(){beep(784,.24,.09,"triangle")},110)},
+  /* ロックが1つ外れた合図。3回とも同じ音で「進んでいる」感を出す */
+  unlock:function(){beep(880,.10,.12,"triangle");setTimeout(function(){beep(1318,.20,.11,"triangle")},95)},
+  /* 違うボタン。responsibility を感じさせない軽い拒否音 */
+  reject:function(){beep(200,.10,.09,"square")}
 };
 
 /* 警報は鳴りっぱなしにする。止まるのは体験者が解消したときだけ。 */
@@ -770,122 +777,36 @@ var timers=[];
 function later(fn,ms){ var t=setTimeout(fn,ms); timers.push(t); return t; }
 function clearTimers(){ timers.forEach(function(t){clearTimeout(t);clearInterval(t);}); timers=[]; }
 
-/* msg = 盤面に出す「状況」。操作方法は絶対に含めない。 */
+/* 3つのロックを順に解除するだけ。手順はこれだけ。 */
 var STEPS=[
-  { id:"PWR",   status:"OFFLINE",  msg:"電源が入っていません",
-    line:function(){ return "POWER ボタンを 1.5 秒、長押ししてください。"; },
-    note:"短く押しても起動しません（体験者はここで必ず詰まります）。" },
+  { id:"L1", key:"K2",  hold:0,
+    line:"K2 のボタンを押してください。",
+    where:"画面の右上、FUNCTION と書かれた列の左から2番目です。",
+    note:"正解は K2。他を押しても弾くだけで、ペナルティは無し。" },
 
-  { id:"DIAG",  status:"SELF TEST", msg:"自己診断が完了していません",
-    line:function(){ return "K1 を押して、自己診断を実行してください。"; },
-    note:"起動直後は自己診断が必須。K1 以外を押すと E-07。" },
+  { id:"L2", key:"V2",  hold:0,
+    line:"青い V2 のバルブを押してください。",
+    where:"一番下の段、色のついた3つのボタンの真ん中、青いものです。",
+    note:"正解は V2（青）。赤 V1・黄 V3 は弾かれる。" },
 
-  { id:"DIAGOK", status:"DIAG OK",
-    msg:function(){ return "診断コード "+S.diag+" ー 承認待ちです"; },
-    line:function(){ return "ENTER を押して、診断結果を承認してください。"; },
-    note:"承認すると解錠シーケンスに進みます。" },
-
-  { id:"U1",    status:"LOCKED",   msg:"操作パネルはロックされています",
-    line:function(){ return "K2 を押してください。"; },
-    note:"解錠シーケンス 1/3。順番を間違えると E-01 でロックします。" },
-
-  { id:"U2",    status:"LOCKED",   msg:"解錠中です（1 / 3 完了）",
-    line:function(){ return "次に S3 を押してください。"; },
-    note:"解錠シーケンス 2/3。" },
-
-  { id:"U3",    status:"LOCKED",   msg:"解錠中です（2 / 3 完了）",
-    line:function(){ return "次に K1 を押してください。"; },
-    note:"解錠シーケンス 3/3。成功すると SEQ 番号が出ます。" },
-
-  { id:"SEQ",   status:"AUTH",     msg:"認証コードを表示しました",
-    line:function(){ return "画面の SEQ の数字を読み上げてください。"; },
-    note:function(){ return "体験者が「"+S.seq+"」と答えたら →「確認しました。ダイヤル ▲▼ を "+S.seq[1]+" に合わせて ENTER を押してください」。（規則：SEQ の真ん中の桁）"; } },
-
-  { id:"MODE",  status:"MODE SEL", msg:"運転モードが確定していません",
-    line:function(){
-      var n=(MODES.indexOf("B")-MODES.indexOf(S.mode)+4)%4;
-      return "MODE を "+n+" 回押して B にし、ENTER を押してください。";
-    },
-    listLine:"MODE を押して B にし、ENTER を押してください。",
-    note:"押しすぎたら「行き過ぎです。あと n 回押して B に戻してください」と言い直してください（この行は自動で更新されます）。" },
-
-  { id:"SETP",  status:"SET-P",     msg:"目標圧力が未設定です",
-    line:function(){ return "テンキーで 350 と入力し、ENTER を押してください。"; },
-    note:"打ち間違いは CLR で消せます。ENTER が違う値なら E-04。" },
-
-  { id:"RAMP",  status:"PRESSURIZE", msg:"加圧しています…",
-    line:function(){ return "まもなく警報が鳴ります。鳴ったら K2 を押して止めてください。"; },
-    note:"自動進行。ここで T5 の1手目（警報停止）を先に伝えておく。" },
-
-  { id:"ALM",   status:"ALARM",     msg:"警報が鳴っています", warn:true,
-    line:function(){ return "K2 を押して警報を止めてください。"; },
-    note:"K2 は解錠でも使ったボタン。文脈で意味が変わるので推測できない。K2 以外は E-05。" },
-
-  { id:"VALVE", status:"DEVIATION", msg:"圧力が上限を超えています", warn:true,
-    line:function(){ return "青い V2 のバルブを押して、圧力を下げてください。"; },
-    note:"ここが「AIが状態を見て指示を変えている」と伝わる山場。V1／V3 は E-05。" },
-
-  { id:"COOL",  status:"TEMP HIGH", msg:"圧力は安定。今度は温度が上限を超えました", warn:true,
-    line:function(){ return "AUX を 1.5 秒長押しして冷却してください。"; },
-    note:"圧力は 35.0 に安定。今度は温度が上限 85 を超えています。" },
-
-  { id:"CONF",  status:"CONFIRM",   msg:"温度が下がりました。確認待ちです",
-    line:function(){ return "TEMP の数値を読み上げてください。"; },
-    note:function(){ return "体験者が「"+Math.round(S.temp)+"」と答えたら →「確認しました。K2 を押してください」。"; } },
-
-  { id:"RUN",   status:"ARMED",     msg:"運転開始の準備ができました",
-    line:function(){ return "最後です。S3 を 2 秒長押しすると運転開始です。"; },
-    note:"完了で SYSTEM READY。所要時間が出ます。" }
+  { id:"L3", key:"S3",  hold:2000,
+    line:"最後です。S3 を2秒間、長押ししてください。",
+    where:"右上の FUNCTION の列、左から3番目です。押しっぱなしにしてください。",
+    note:"長押し2秒。短く押すと解除されない＝ここが一番つまずく。" }
 ];
 
-/* タスク＝「クリア！！」を出す区切り。last はそのタスクの最終ステップ index。
-   HintBot の指示が 3 手たまるごとに 1 タスク完了になるよう境界を切ってある
-   （6タスク×3手＝18手）。片方だけ直すと粒度が崩れるので build_tree.py と対で保つこと。 */
-var TASKS=[
-  { name:"起動と自己診断",  last:2  },  // POWER長押し / K1診断 / ENTER承認
-  { name:"ロック解除",      last:5  },  // K2 / S3 / K1
-  { name:"認証コード入力",   last:6  },  // SEQ読み上げ / ダイヤル / ENTER
-  { name:"運転条件の設定",   last:8  },  // MODEをBに / ENTER確定 / 350+ENTER
-  { name:"圧力異常の処置",   last:11 },  // 警報予告 / 警報をK2で停止 / V2で減圧
-  { name:"冷却と確認",      last:13 }   // AUX長押しで冷却 / TEMP読み上げ / K2で確認
-  // 仕上げの S3 長押し(RUN)は「クリア！！」ではなく SYSTEM READY 演出で締める
-];
-var ERRMSG={
-  "E-01":"LOCK SEQ",
-  "E-02":"AUTH FAIL",
-  "E-03":"MODE ERR",
-  "E-04":"SETPOINT",
-  "E-05":"VALVE ERR",
-  "E-06":"CONFIRM",
-  "E-07":"SELF TEST"
-};
+
 
 /* ============================================================
    4. 状態
    ============================================================ */
 function reset(){
   clearTimers(); busy=false;
-  S={
-    phase:"off",           /* off | run | error | done */
-    step:0,
-    power:false,
-    mode:MODES[[0,2,3][Math.floor(Math.random()*3)]],  /* B 以外から開始 */
-    seq:String(Math.floor(Math.random()*9)+1)+String(Math.floor(Math.random()*10))+String(Math.floor(Math.random()*10)),
-    seqShown:false,
-    diag:("0"+(Math.floor(Math.random()*89)+10)).slice(-2),  /* 自己診断コード（2桁） */
-    dial:0,
-    kb:"",
-    pressure:0,
-    temp:24,
-    err:null,
-    t0:null,
-    elapsed:null
-  };
+  S={ phase:"idle", locks:[false,false,false], step:0, t0:null, elapsed:null };
   doneVeil.classList.remove("show");
-  clearTimeout(popT); $("clearPop").classList.remove("show");
   stopAlarm(); hideAlert();
   clearTimeout(okT); $("okVeil").classList.remove("show");
-  $("startVeil").classList.remove("hide");   /* スタート画面に戻す */
+  $("startVeil").classList.remove("hide");
   paint();
 }
 
@@ -916,79 +837,35 @@ function flashOk(text){
 }
 
 function paint(){
-  var st=STEPS[S.step];
-  /* ステータス */
-  if(S.phase==="error"){
-    statusText.textContent="ERROR";
-    statusText.classList.add("blink");
-    errText.textContent=S.err+"  "+ERRMSG[S.err];
-  }else if(S.phase==="done"){
-    statusText.textContent="RUNNING";
-    statusText.classList.remove("blink");
-    errText.textContent="";
-  }else{
-    statusText.textContent=S.phase==="off"?"OFFLINE":(st?st.status:"—");
-    statusText.classList.remove("blink");
-    errText.textContent="";
-  }
+  var left=3-S.step;
 
-  /* 表示灯 */
-  var lit=S.power&&S.step>=6;      /* 解錠(U3=5)の後からモード灯が点く */
-  ["A","B","C","D"].forEach(function(m){ setLamp("lamp"+m, lit&&S.mode===m); });
-  setLamp("lampPWR",S.power);
-  setLamp("lampALM",S.phase==="error"||(S.phase!=="done"&&st&&(st.id==="VALVE"||st.id==="COOL")));
-  setLamp("lampRDY",S.phase==="done");
+  statusText.textContent = S.phase==="done" ? "UNLOCKED" : "LOCKED";
+  statusText.classList.remove("blink");
+  errText.textContent = S.phase==="done" ? "" : left+(left===1?" LOCK":" LOCKS")+" ENGAGED";
 
-  /* メーター */
-  if(!S.power){
-    /* 消灯中は画面を完全に暗くする */
-    renderSeg($("segPress"),"    "); renderSeg($("segTemp"),"   ");
-    renderSeg($("segSeq"),"   "); renderSeg($("segDial")," "); renderSeg($("segSetp"),"   ");
-  }else{
-    var p=S.pressure.toFixed(1);
-    while(p.length<4) p=" "+p;
-    renderSeg($("segPress"),p.slice(0,-2)+"."+p.slice(-1));
-    renderSeg($("segTemp"),pad(Math.round(S.temp),3));
-    renderSeg($("segSeq"),S.seqShown?S.seq:"---");
-    renderSeg($("segDial"),String(S.dial));
-    renderSeg($("segSetp"),S.kb?pad(S.kb,3):(S.step>8?"350":"---"));
-  }
-  $("barPress").firstElementChild.style.width=Math.min(100,S.pressure/60*100)+"%";
-  $("barPress").classList.toggle("hot",S.pressure>40);
-  $("barTemp").firstElementChild.style.width=Math.min(100,S.temp/120*100)+"%";
-  $("barTemp").classList.toggle("hot",S.temp>85);
+  setLamp("lampALM", S.phase==="run" && !!alarmTimer);
+  setLamp("lampRDY", S.phase==="done");
 
-  /* 状況メッセージ（操作方法は書かない） */
+  /* ロック3つ */
+  [].forEach.call($("locks").children,function(el,i){
+    el.classList.toggle("open",S.locks[i]);
+    el.querySelector("i").textContent = S.locks[i] ? "OPEN" : "LOCKED";
+  });
+
+  /* 状況（「何をするか」は書かない。残り数だけ） */
   var m=$("msgText"), msg, tone="";
-  if(S.phase==="error"){
-    msg="操作を受け付けられません（"+S.err+"）"; tone="warn";
-  }else if(S.phase==="done"){
-    msg="運転を開始しました。すべてのタスク完了です"; tone="good";
-  }else if(!S.power){
-    msg=STEPS[0].msg; tone="warn";   /* 異常停止＝警報が鳴っている状態 */
-  }else{
-    msg=st?(typeof st.msg==="function"?st.msg():st.msg):"";
-    if(st&&st.warn) tone="warn";
-  }
+  if(S.phase==="done"){ msg="3つとも解除できました"; tone="good"; }
+  else if(left===3){ msg="ロックが3つかかっています"; tone="warn"; }
+  else{ msg="のこり "+left+" つです"; tone="warn"; }
   m.textContent=msg;
   m.classList.toggle("warn",tone==="warn");
   m.classList.toggle("good",tone==="good");
 
-  /* タスク進捗 */
-  var cleared=0;
-  for(var ti=0;ti<TASKS.length;ti++){ if(S.phase==="done"||S.step>TASKS[ti].last) cleared++; }
+  /* 進捗ドット */
   var dots=$("taskDots");
-  if(dots.children.length!==TASKS.length){
-    dots.innerHTML=new Array(TASKS.length+1).join("<i></i>");
-  }
-  [].forEach.call(dots.children,function(d,i){ d.classList.toggle("on",i<cleared); });
-  $("taskNum").textContent="TASK "+cleared+" / "+TASKS.length;
-
-  /* MODE 目盛 */
-  [].forEach.call($("modeScale").children,function(el){
-    el.classList.toggle("act",lit&&el.dataset.m===S.mode);
-  });
-  $("powerBtn").classList.toggle("live",S.power);
+  if(dots.children.length!==3) dots.innerHTML="<i></i><i></i><i></i>";
+  [].forEach.call(dots.children,function(d,i){ d.classList.toggle("on",S.locks[i]); });
+  $("taskNum").textContent="LOCK "+S.step+" / 3";
 
   paintOps();
 }
@@ -996,104 +873,36 @@ function paint(){
 /* ============================================================
    6. 進行
    ============================================================ */
-/* すべてのステップ遷移はここを通す（タスク達成の判定を一箇所にまとめる） */
-function setStep(n){
-  var prev=S.step, done=null;
-  S.step=n;
-  if(n>prev){
-    for(var i=0;i<TASKS.length;i++){ if(TASKS[i].last===prev) done=TASKS[i]; }
-  }
-  var st=STEPS[n];
-  if(st&&st.id==="SEQ") S.seqShown=true;
-  if(done) popClear(done.name); else SFX.ok();
-  if(st&&st.id==="RAMP") startRamp();
-  paint();
+/* 1つ解除する */
+function unlock(i){
+  S.locks[i]=true;
+  S.step++;
+  SFX.unlock();
+  var el=$("locks").children[i];
+  el.classList.add("just");
+  setTimeout(function(){ el.classList.remove("just"); },600);
+  if(S.step>=3) finish(); else paint();
 }
-function advance(){ setStep(S.step+1); }
 
-var popT=null;
-function popClear(name){
-  stopAlarm(); hideAlert();
-  $("cpSub").textContent=name;
-  var el=$("clearPop");
-  el.classList.remove("show");
-  void el.offsetWidth;              /* アニメーションを再生し直す */
-  el.classList.add("show");
-  SFX.clear();
-  clearTimeout(popT);
-  popT=setTimeout(function(){ el.classList.remove("show"); },1400);
+/* 違うボタン＝軽く弾くだけ。やり直しもリセットも要求しない。 */
+var rejectT=null;
+function reject(){
+  SFX.reject();
+  var panel=document.querySelector(".panel");
+  panel.classList.remove("reject");
+  void panel.offsetWidth;
+  panel.classList.add("reject");
+  clearTimeout(rejectT);
+  rejectT=setTimeout(function(){ panel.classList.remove("reject"); },400);
 }
-function fail(code){
-  S.phase="error"; S.err=code; S.kb="";
-  SFX.err();
-  startAlarm();
-  showAlert("ERROR", code+"  "+ERRMSG[code]);
-  paint();
-}
-function runDiag(){
-  busy=true;
-  var i=0;
-  var iv=setInterval(function(){
-    i++;
-    statusText.textContent = (i%2) ? "TESTING" : "TESTING …";
-    if(i>=6){
-      clearInterval(iv); busy=false;
-      advance();                 /* → DIAGOK（診断コードの承認待ち） */
-    }
-  },200);
-  timers.push(iv);
-}
-function startRamp(){
-  busy=true;
-  var iv=setInterval(function(){
-    S.pressure=Math.min(42.4,S.pressure+1.35);
-    S.temp=Math.min(61,S.temp+1.1);
-    paint();
-    if(S.pressure>=42.4){
-      clearInterval(iv);
-      busy=false;
-      S.step++;                    /* → ALM（タスク途中なのでクリア演出なし） */
-      startAlarm();
-      showAlert("ALARM", "PRESSURE HIGH");
-      paint();
-    }
-  },110);
-  timers.push(iv);
-}
-function stabilize(){
-  busy=true;
-  var iv=setInterval(function(){
-    S.pressure=Math.max(35,S.pressure-0.5);
-    S.temp=Math.min(88,S.temp+1.4);
-    paint();
-    if(S.pressure<=35&&S.temp>=88){
-      clearInterval(iv); busy=false;
-      setStep(S.step+1);           /* → COOL（ここで「圧力異常の処置」クリア） */
-      later(SFX.alarm,1700);       /* クリア演出のあとに警報 */
-    }
-  },90);
-  timers.push(iv);
-}
-function cooldown(){
-  busy=true;
-  var iv=setInterval(function(){
-    S.temp=Math.max(72,S.temp-1.2);
-    paint();
-    if(S.temp<=72){
-      clearInterval(iv); busy=false;
-      S.step++;                    /* → CONF（タスク途中なのでクリア演出なし） */
-      SFX.ok(); paint();
-    }
-  },80);
-  timers.push(iv);
-}
+
 function finish(){
   S.phase="done";
   S.elapsed=S.t0?Math.round((Date.now()-S.t0)/1000):null;
+  stopAlarm(); hideAlert();          /* アラームが止まる */
   SFX.done();
-  doneSub.innerHTML="ALL TASKS CLEAR &nbsp;·&nbsp; "+TASKS.length+" / "+TASKS.length
-    +(S.elapsed!==null?"<br>ELAPSED "+Math.floor(S.elapsed/60)+"&#39;"+("0"+(S.elapsed%60)).slice(-2)+"&quot;":"")
-    +"<br>RESET を3秒長押しで初期化";
+  doneSub.innerHTML="3つのロックをすべて解除しました"
+    +(S.elapsed!==null?"<br>ELAPSED "+Math.floor(S.elapsed/60)+"&#39;"+("0"+(S.elapsed%60)).slice(-2)+"&quot;":"");
   doneVeil.classList.add("show");
   paint();
 }
@@ -1101,139 +910,26 @@ function finish(){
 /* ============================================================
    7. 入力ディスパッチ
    ============================================================ */
-var FN=["K1","K2","S3","AUX","MODE"];
-var VLV=["V1","V2","V3"];
-var DIG="0123456789";
-
 function press(key){
   SFX.tick();
-  if(key==="RESET"){
-    if(S.phase==="error"){
-      S.phase="run"; S.err=null;
-      stopAlarm(); hideAlert(); flashOk("RECOVERED"); SFX.recover();
-      paint();
-    }
-    return;
-  }
-  if(S.phase==="error"||S.phase==="done"||busy) return;
+  if(S.phase!=="run") return;
 
-  if(!S.power){
-    /* 電源前は POWER 長押し以外すべて無反応 */
-    if(key==="POWER"){ statusFlash("PWR ?"); }   /* 生きてはいるが、押し方は教えない */
-    return;
-  }
-  if(key==="POWER") return;
+  var st=STEPS[S.step];
+  if(!st) return;
 
-  var st=STEPS[S.step]; if(!st) return;
+  /* 長押しで解除する段は、短く押しても解除しない（ここが一番つまずくところ） */
+  if(st.hold){ reject(); return; }
 
-  switch(st.id){
-    case "DIAG":
-      if(key==="K1"){ runDiag(); return; }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-07"); break;
-
-    case "DIAGOK":
-      if(key==="ENTER"){ advance(); return; }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-07"); break;
-
-    case "U1": step_unlock(key,"K2"); break;
-    case "U2": step_unlock(key,"S3"); break;
-    case "U3": step_unlock(key,"K1"); break;
-
-    case "SEQ":
-      if(key==="UP"){ S.dial=(S.dial+1)%10; paint(); return; }
-      if(key==="DOWN"){ S.dial=(S.dial+9)%10; paint(); return; }
-      if(key==="ENTER"){ (S.dial===Number(S.seq[1]))?advance():fail("E-02"); return; }
-      if(key==="CLR") return;
-      fail("E-02"); break;
-
-    case "MODE":
-      if(key==="MODE"){ S.mode=MODES[(MODES.indexOf(S.mode)+1)%4]; paint(); return; }
-      if(key==="ENTER"){ (S.mode==="B")?advance():fail("E-03"); return; }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-03"); break;
-
-    case "SETP":
-      if(DIG.indexOf(key)>=0&&key.length===1){ if(S.kb.length<3){ S.kb+=key; paint(); } return; }
-      if(key==="CLR"){ S.kb=""; paint(); return; }
-      if(key==="ENTER"){ if(S.kb==="350"){ advance(); } else { fail("E-04"); } return; }
-      if(key==="UP"||key==="DOWN") return;
-      fail("E-04"); break;
-
-    case "RAMP": return;   /* 自動進行中 */
-
-    case "ALM":
-      if(key==="K2"){                        /* 解錠でも使った K2 が、ここでは警報停止 */
-        stopAlarm(); hideAlert(); flashOk("ALARM CLEARED");
-        advance(); return;
-      }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-05"); break;
-
-    case "VALVE":
-      if(key==="V2"){ stabilize(); paint(); return; }
-      if(VLV.indexOf(key)>=0) { fail("E-05"); return; }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-05"); break;
-
-    case "COOL":
-      if(key==="AUX"){ statusFlash("HOLD 1.5s"); return; }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-05"); break;
-
-    case "CONF":
-      if(key==="K2"){ advance(); return; }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-06"); break;
-
-    case "RUN":
-      if(key==="S3"){ statusFlash("HOLD 2.0s"); return; }
-      if(key==="UP"||key==="DOWN"||key==="CLR") return;
-      fail("E-06"); break;
-  }
-}
-function step_unlock(key,want){
-  if(key===want){ advance(); return; }
-  if(key==="UP"||key==="DOWN"||key==="CLR"){ return; }
-  fail("E-01");
+  if(key===st.key){ unlock(S.step); }
+  else{ reject(); }
 }
 
 function hold(key,ms){
   if(key==="RESET"&&ms>=3000){ SFX.boot(); reset(); return; }
-  if(S.phase==="error"||S.phase==="done"||busy) return;
+  if(S.phase!=="run") return;
 
-  if(key==="POWER"&&!S.power&&ms>=1500){
-    S.power=true;
-    /* ここでは警報を止めない。起動しただけでは異常は解消していない。
-       「起動と自己診断」タスクを完了（ENTER で承認）した時点で popClear() が止める。
-       1手で鳴り止むと緊張感が最初の一手で終わってしまうため。 */
-    SFX.boot(); lampTest();
-    return;
-  }
-  var st=STEPS[S.step]; if(!st||!S.power) return;
-  if(st.id==="COOL"&&key==="AUX"&&ms>=1500){ cooldown(); paint(); return; }
-  if(st.id==="RUN"&&key==="S3"&&ms>=2000){ finish(); return; }
-}
-function lampTest(){
-  busy=true;
-  statusText.textContent="BOOT";
-  ["lampA","lampB","lampC","lampD","lampPWR","lampALM","lampRDY"].forEach(function(id){$(id).classList.add("on")});
-  S.pressure=0; S.temp=24;
-  renderSeg($("segPress"),"88.8"); renderSeg($("segTemp"),"888");
-  renderSeg($("segSeq"),"888"); renderSeg($("segDial"),"8"); renderSeg($("segSetp"),"888");
-  later(function(){
-    busy=false;
-    S.phase="run";
-    setStep(1);                    /* → 「電源投入」クリア */
-  },1500);
-}
-var flashT=null;
-function statusFlash(msg){
-  var keep=statusText.textContent;
-  statusText.textContent=msg;
-  clearTimeout(flashT);
-  flashT=setTimeout(function(){ paint(); },900);
+  var st=STEPS[S.step];
+  if(st&&st.hold&&key===st.key&&ms>=st.hold){ unlock(S.step); }
 }
 
 /* ============================================================
@@ -1284,11 +980,11 @@ function beginDemo(){
     if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
     if(actx.state==="suspended") actx.resume();
   }catch(e){}
+  S.phase="run";
   S.t0=Date.now();
-  /* 開始した瞬間から警報が鳴っている＝「止めないと」という状況からデモを始める。
-     機械は異常停止（電源が落ちている）状態なので、起動が最初の一手になる。 */
+  /* 押した瞬間からアラーム。止める方法は「3つのロックを解除すること」だけ。 */
   startAlarm();
-  showAlert("ALARM","UNIT SHUTDOWN");
+  showAlert("⚠ ALARM","ロックを解除してください");
   paint();
 }
 $("startBtn").addEventListener("click",beginDemo);
@@ -1332,25 +1028,20 @@ STEPS.forEach(function(st,i){
 function paintOps(){
   var st=STEPS[S.step];
   if(S.phase==="done"){
-    opsLine.textContent="完了です。お疲れさまでした。";
-    opsNote.textContent="RESET を3秒長押し、またはこのパネルの「最初から」で次の人へ。";
-  }else if(S.phase==="error"){
-    opsLine.textContent="操作が違います。RESET を押してください。";
-    opsNote.textContent="エラー "+S.err+"（"+ERRMSG[S.err]+"）。RESET すると同じ手順からやり直せます。";
-  }else if(!S.power){
-    opsLine.textContent=STEPS[0].line();
-    opsNote.textContent=STEPS[0].note;
+    opsLine.textContent="クリアです。お疲れさまでした。";
+    opsNote.textContent="RESET を3秒長押し、または右下のネジ／このパネルの「最初から」で次の人へ。";
+  }else if(S.phase==="idle"){
+    opsLine.textContent="START を押してもらってください。";
+    opsNote.textContent="押した瞬間からアラームが鳴り、"+STEPS[0].line+" が最初の指示になります。";
   }else if(st){
-    opsLine.textContent=st.line();
-    opsNote.textContent=(typeof st.note==="function")?st.note():st.note;
+    opsLine.textContent=st.line;
+    opsNote.textContent="場所を聞かれたら → "+st.where+"　／　"+st.note;
   }
-  var cl=0;
-  for(var ti=0;ti<TASKS.length;ti++){ if(S.phase==="done"||S.step>TASKS[ti].last) cl++; }
-  opsStep.textContent="TASK "+cl+"/"+TASKS.length+" · STEP "+(S.phase==="done"?STEPS.length:S.step)+"/"+STEPS.length;
+  opsStep.textContent="LOCK "+S.step+" / 3";
   [].forEach.call(opsList.children,function(d,i){
     d.classList.toggle("cur",i===S.step&&S.phase!=="done");
     d.classList.toggle("past",i<S.step||S.phase==="done");
-    d.querySelector(".t").textContent=STEPS[i].listLine||STEPS[i].line();
+    d.querySelector(".t").textContent=STEPS[i].line;
   });
   if(!opsJson.hidden) opsJson.textContent=JSON.stringify(getState(),null,1);
 }
@@ -1383,19 +1074,12 @@ $("opsJsonToggle").addEventListener("click",function(){
 function getState(){
   var st=STEPS[S.step];
   return {
-    step:S.phase==="done"?STEPS.length:S.step,
+    phase:S.phase,                       /* idle | run | done */
+    locks:S.locks.slice(),
+    remaining:3-S.step,
     stepId:S.phase==="done"?"DONE":(st?st.id:null),
-    phase:S.phase,
-    power:S.power,
-    mode:S.power&&S.step>=6?S.mode:null,
-    seq:S.seqShown?S.seq:null,
-    dial:S.dial,
-    pressure:Number(S.pressure.toFixed(1)),
-    temp:Math.round(S.temp),
-    error:S.phase==="error"?S.err:null,
-    hint:S.phase==="done"?"完了です。お疲れさまでした。"
-        :S.phase==="error"?"操作が違います。RESET を押してください。"
-        :(st?st.line():null)
+    hint:S.phase==="done"?"クリアです。お疲れさまでした。":(st?st.line:null),
+    where:st?st.where:null
   };
 }
 window.X42={ getState:getState, reset:reset, press:press, hold:hold };

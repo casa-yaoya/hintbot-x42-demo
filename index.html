@@ -257,6 +257,68 @@ body{
 .done-veil .big{font:600 46px/1 var(--silk);letter-spacing:.14em;color:var(--green);text-shadow:0 0 26px rgba(70,208,126,.55)}
 .done-veil .sub{font:500 12px/1.7 var(--mono);letter-spacing:.14em;color:#7FA98F;text-align:center}
 
+/* 警報・エラー —— 表示部の中だけを覆う（操作は続けられる） */
+.alert-veil{
+  position:absolute;inset:0;z-index:6;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  pointer-events:none;
+  /* 濃くしすぎると圧力・温度が読めなくなる。数値が透ける濃さに留める */
+  background:radial-gradient(ellipse at center,rgba(62,8,4,.55),rgba(24,3,2,.72));
+}
+.alert-veil.show{display:flex}
+.alert-veil .big{
+  font:700 64px/1 var(--silk);letter-spacing:.18em;color:var(--red);
+  text-shadow:0 0 32px rgba(255,59,36,.85),0 0 70px rgba(255,59,36,.4);
+  animation:alertBlink .48s steps(1,end) infinite;
+}
+.alert-veil .sub{font:600 15px/1 var(--mono);letter-spacing:.22em;color:#FFB0A2}
+@keyframes alertBlink{50%{opacity:.12}}
+
+/* 解消したときの緑 */
+.ok-veil{
+  position:absolute;inset:0;z-index:7;display:none;
+  align-items:center;justify-content:center;pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(10,42,23,.82),rgba(4,16,9,.92));
+}
+.ok-veil.show{display:flex;animation:fadein .18s ease-out}
+.ok-veil .big{
+  font:700 37px/1 var(--silk);letter-spacing:.13em;color:var(--green);
+  text-shadow:0 0 30px rgba(70,208,126,.75);
+}
+
+/* 鳴っている間は盤面ぜんぶを赤く脈動させる */
+.panel.alarm::before{
+  content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;z-index:15;
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,59,36,0) 42%,rgba(255,59,36,.45) 100%);
+  animation:alarmPulse .7s ease-in-out infinite;
+}
+@keyframes alarmPulse{0%,100%{opacity:.18}50%{opacity:1}}
+
+/* ---------- スタート画面 ---------- */
+.start-veil{
+  position:absolute;inset:0;z-index:30;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 38%,#21211C,#0A0A07 78%);
+}
+.start-veil.hide{display:none}
+.sv-model{font:600 78px/1 var(--silk);letter-spacing:.22em;color:#E4E0D2;text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.sv-title{margin-top:14px;font:600 14px/1 var(--silk);letter-spacing:.42em;color:var(--label-dim);text-transform:uppercase}
+.sv-rule{width:200px;height:1px;background:#3A3A33;margin:32px 0}
+.sv-task{font:600 27px/1.5 var(--jp);color:var(--amber);text-shadow:0 0 22px rgba(255,165,31,.3)}
+.sv-note{margin-top:16px;font:400 13px/1.8 var(--jp);color:#7A7768;text-align:center}
+.sv-btn{
+  margin-top:36px;width:280px;height:80px;border:0;cursor:pointer;border-radius:8px;
+  font:600 23px/1 var(--silk);letter-spacing:.3em;color:#0C1A10;
+  background:linear-gradient(180deg,#6FD693,#3FA766 55%,#2F8A52);
+  animation:svPulse 2s ease-in-out infinite;
+}
+.sv-btn:active{transform:translateY(2px);filter:brightness(.94)}
+.sv-btn:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+@keyframes svPulse{
+  0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.35),0 0 22px rgba(70,208,126,.28),0 4px 8px rgba(0,0,0,.5)}
+  50%    {box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.35),0 0 46px rgba(70,208,126,.62),0 4px 8px rgba(0,0,0,.5)}
+}
+
 /* ---------- 操作部 ---------- */
 .controls{display:grid;grid-template-rows:auto auto 1fr;gap:15px;min-height:0}
 .zone{
@@ -464,6 +526,15 @@ body{
           <div class="mini"><span class="cap">SET-P</span><span class="seg small" id="segSetp"></span></div>
         </div>
 
+        <div class="alert-veil" id="alertVeil">
+          <div class="big" id="alertBig">ERROR</div>
+          <div class="sub" id="alertSub"></div>
+        </div>
+
+        <div class="ok-veil" id="okVeil">
+          <div class="big" id="okBig">CLEARED</div>
+        </div>
+
         <div class="done-veil" id="doneVeil">
           <div class="big">SYSTEM READY</div>
           <div class="sub" id="doneSub"></div>
@@ -540,6 +611,15 @@ body{
       <div class="cp-badge">Task Complete</div>
       <div class="cp-big">クリア！！</div>
       <div class="cp-sub" id="cpSub"></div>
+    </div>
+
+    <div class="start-veil" id="startVeil">
+      <div class="sv-model">X-42</div>
+      <div class="sv-title">Pressure Control Unit</div>
+      <span class="sv-rule"></span>
+      <div class="sv-task">この機械を正常稼働させてください</div>
+      <div class="sv-note">説明書はありません。<br>スマートグラスの指示に従って操作してください。</div>
+      <button class="sv-btn" id="startBtn">START</button>
     </div>
   </div>
 </div>
@@ -647,8 +727,37 @@ var SFX={
   boot:function(){[330,440,554,660].forEach(function(f,i){setTimeout(function(){beep(f,.09,.07,"triangle")},i*90)})},
   clear:function(){[784,988,1175].forEach(function(f,i){setTimeout(function(){beep(f,.13,.1,"triangle")},i*85)});
                    setTimeout(function(){beep(1568,.3,.09,"triangle")},255)},
-  done:function(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){beep(f,.16,.09,"triangle")},i*130)})}
+  done:function(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){beep(f,.16,.09,"triangle")},i*130)})},
+  recover:function(){beep(523,.12,.09,"triangle");setTimeout(function(){beep(784,.24,.09,"triangle")},110)}
 };
+
+/* 警報は鳴りっぱなしにする。止まるのは体験者が解消したときだけ。 */
+var alarmTimer=null;
+function startAlarm(){
+  document.querySelector(".panel").classList.add("alarm");
+  if(alarmTimer) return;
+  var tick=function(){
+    beep(950,.16,.15,"square");
+    setTimeout(function(){ beep(700,.16,.15,"square"); },200);
+  };
+  tick();
+  alarmTimer=setInterval(tick,820);
+}
+function stopAlarm(){
+  clearInterval(alarmTimer); alarmTimer=null;
+  document.querySelector(".panel").classList.remove("alarm");
+}
+
+/* 開始の合図を声に出す。グラスのマイクがこれを拾って HintBot 側も動き出す。 */
+function speak(text){
+  if(!soundOn) return;
+  try{
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang="ja-JP"; u.rate=1.0;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
 
 /* ============================================================
    3. 手順定義
@@ -773,6 +882,9 @@ function reset(){
   };
   doneVeil.classList.remove("show");
   clearTimeout(popT); $("clearPop").classList.remove("show");
+  stopAlarm(); hideAlert();
+  clearTimeout(okT); $("okVeil").classList.remove("show");
+  $("startVeil").classList.remove("hide");   /* スタート画面に戻す */
   paint();
 }
 
@@ -783,6 +895,24 @@ var $=function(id){return document.getElementById(id)};
 var statusText=$("statusText"), errText=$("errText"), doneVeil=$("doneVeil"), doneSub=$("doneSub");
 
 function setLamp(id,on){ $(id).classList.toggle("on",!!on); }
+
+/* 赤い警告板（ERROR / ALARM 共通）。表示部の中だけを覆うので操作は続けられる */
+function showAlert(big,sub){
+  $("alertBig").textContent=big;
+  $("alertSub").textContent=sub||"";
+  $("alertVeil").classList.add("show");
+}
+function hideAlert(){ $("alertVeil").classList.remove("show"); }
+
+/* 解消したときの緑。音は呼び出し側で鳴らす（二重に鳴らさないため） */
+var okT=null;
+function flashOk(text){
+  $("okBig").textContent=text;
+  var el=$("okVeil");
+  el.classList.add("show");
+  clearTimeout(okT);
+  okT=setTimeout(function(){ el.classList.remove("show"); },1100);
+}
 
 function paint(){
   var st=STEPS[S.step];
@@ -882,6 +1012,7 @@ function advance(){ setStep(S.step+1); }
 
 var popT=null;
 function popClear(name){
+  stopAlarm(); hideAlert();
   $("cpSub").textContent=name;
   var el=$("clearPop");
   el.classList.remove("show");
@@ -894,6 +1025,8 @@ function popClear(name){
 function fail(code){
   S.phase="error"; S.err=code; S.kb="";
   SFX.err();
+  startAlarm();
+  showAlert("ERROR", code+"  "+ERRMSG[code]);
   paint();
 }
 function runDiag(){
@@ -918,8 +1051,9 @@ function startRamp(){
     if(S.pressure>=42.4){
       clearInterval(iv);
       busy=false;
-      S.step++;                    /* → VALVE（タスク途中なのでクリア演出なし） */
-      SFX.alarm();
+      S.step++;                    /* → ALM（タスク途中なのでクリア演出なし） */
+      startAlarm();
+      showAlert("ALARM", "PRESSURE HIGH");
       paint();
     }
   },110);
@@ -973,7 +1107,11 @@ var DIG="0123456789";
 function press(key){
   SFX.tick();
   if(key==="RESET"){
-    if(S.phase==="error"){ S.phase="run"; S.err=null; paint(); }
+    if(S.phase==="error"){
+      S.phase="run"; S.err=null;
+      stopAlarm(); hideAlert(); flashOk("RECOVERED"); SFX.recover();
+      paint();
+    }
     return;
   }
   if(S.phase==="error"||S.phase==="done"||busy) return;
@@ -1025,7 +1163,10 @@ function press(key){
     case "RAMP": return;   /* 自動進行中 */
 
     case "ALM":
-      if(key==="K2"){ advance(); return; }   /* 解錠でも使った K2 が、ここでは警報停止 */
+      if(key==="K2"){                        /* 解錠でも使った K2 が、ここでは警報停止 */
+        stopAlarm(); hideAlert(); flashOk("ALARM CLEARED");
+        advance(); return;
+      }
       if(key==="UP"||key==="DOWN"||key==="CLR") return;
       fail("E-05"); break;
 
@@ -1062,7 +1203,7 @@ function hold(key,ms){
   if(S.phase==="error"||S.phase==="done"||busy) return;
 
   if(key==="POWER"&&!S.power&&ms>=1500){
-    S.power=true; S.t0=Date.now();
+    S.power=true;
     SFX.boot(); lampTest();
     return;
   }
@@ -1127,6 +1268,23 @@ document.querySelectorAll(".btn").forEach(function(btn){
   btn.addEventListener("pointerup",up);
   btn.addEventListener("pointercancel",cancel);
   btn.addEventListener("contextmenu",function(e){e.preventDefault()});
+});
+
+/* ============================================================
+   8.5 スタート
+   ============================================================ */
+$("startBtn").addEventListener("click",function(){
+  $("startVeil").classList.add("hide");
+  /* iOS は「ユーザー操作起点」でないと音が出せない。ここで鳴らせる状態にしておく */
+  try{
+    if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+  }catch(e){}
+  S.t0=Date.now();
+  SFX.boot();
+  /* 開始を声に出す＝グラスのマイクが拾い、HintBot 側のセッションもここから始まる */
+  speak("機械操作デモを開始します。指示をお願いします。");
+  paint();
 });
 
 /* キーボード（PC 検証用） */

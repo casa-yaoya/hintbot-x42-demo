@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0E0E0B">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" href="./icon-180.png">
+<title>X-42 CONTROL PANEL</title>
+</head>
+<body>
+<style>
+/* ============================================================
+   X-42 CONTROL PANEL — HintBot 展示会デモ
+   単一テーマ（工業用制御盤）。色は全て明示指定。
+   ============================================================ */
+:root{
+  --ground:#0E0E0B;
+  --case-dark:#1E1E1A;
+  --case:#35352F;
+  --case-hi:#4A4A42;
+  --engrave:#17170F;
+  --seam:#0B0B08;
+  --label:#C9C6B8;
+  --label-dim:#8A8779;
+  --screen:#100E0A;
+  --amber:#FFA51F;
+  --amber-soft:#FFC46B;
+  --amber-off:#22190A;   /* 消灯セグ。明るすぎると 4 が 9 に化ける */
+  --red:#FF3B24;
+  --red-off:#3B120C;
+  --green:#46D07E;
+  --green-off:#0F3320;
+  --blue:#3E8BFF;
+  --yellow:#FFD23E;
+  --ops-bg:#1B1B19;
+  --ops-card:#242421;
+  --ops-line:#3A3A35;
+  --ops-text:#E8E5DC;
+  --ops-dim:#9B978B;
+  --silk:"Helvetica Neue","Arial Narrow",ui-sans-serif,system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --jp:"Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--ground);overflow:hidden}
+body{
+  font-family:var(--silk);
+  color:var(--label);
+  display:flex;align-items:center;justify-content:center;
+  -webkit-user-select:none;user-select:none;
+  touch-action:manipulation;
+}
+
+/* ---------- stage: 固定サイズを画面に合わせて縮小 ---------- */
+#stage{
+  width:1180px;height:790px;flex:none;
+  transform-origin:center center;
+}
+
+/* ---------- 筐体 ---------- */
+.panel{
+  width:100%;height:100%;
+  background:
+    linear-gradient(178deg,#3C3C35 0%,#33332D 42%,#2C2C27 100%);
+  border-radius:14px;
+  padding:22px 24px 20px;
+  display:grid;
+  grid-template-rows:52px 1fr 128px;
+  gap:16px;
+  position:relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -2px 0 rgba(0,0,0,.5),
+    0 30px 70px rgba(0,0,0,.7);
+}
+.panel::after{ /* ヘアライン仕上げ */
+  content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  background:repeating-linear-gradient(92deg,rgba(255,255,255,.022) 0 1px,rgba(0,0,0,0) 1px 3px);
+  mix-blend-mode:overlay;
+}
+.screw{
+  position:absolute;width:15px;height:15px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#6A6A60,#2A2A24 70%);
+  box-shadow:inset 0 -1px 1px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.07);
+}
+.screw::before{
+  content:"";position:absolute;inset:4px 2px;border-top:1.5px solid #16160F;
+  transform:rotate(28deg);transform-origin:center;
+}
+.screw.tl{top:9px;left:9px}.screw.tr{top:9px;right:9px}
+.screw.bl{bottom:9px;left:9px}.screw.br{bottom:9px;right:9px}
+
+/* ---------- 銘板 ---------- */
+.nameplate{
+  display:flex;align-items:center;gap:16px;
+  padding:0 12px 0 34px;
+  border-bottom:1px solid var(--seam);
+  box-shadow:0 1px 0 rgba(255,255,255,.06);
+}
+.np-mark{
+  width:26px;height:26px;flex:none;border-radius:3px;
+  background:linear-gradient(160deg,#5A5A50,#2A2A24);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15);
+  display:grid;place-items:center;
+  font:700 13px/1 var(--silk);color:#0E0E0B;
+}
+.np-model{font:600 22px/1 var(--silk);letter-spacing:.34em;color:#E4E0D2;text-shadow:0 1px 0 rgba(0,0,0,.6)}
+.np-sub{font:500 11px/1 var(--silk);letter-spacing:.28em;color:var(--label-dim);text-transform:uppercase}
+.np-spacer{flex:1}
+.np-serial{font:500 10px/1 var(--mono);letter-spacing:.16em;color:#6E6B60}
+
+/* ---------- 表示部 ---------- */
+.main{display:grid;grid-template-columns:566px 1fr;gap:24px;min-height:0}
+.screen{
+  background:linear-gradient(180deg,#0C0B07,#141109);
+  border-radius:8px;
+  padding:16px 18px 14px;
+  display:grid;grid-template-rows:auto auto auto 1fr auto;gap:12px;
+  position:relative;overflow:hidden;
+  box-shadow:
+    inset 0 3px 10px rgba(0,0,0,.95),
+    inset 0 0 0 1px #0A0A06,
+    0 0 0 3px #2A2A24,
+    0 0 0 4px #43433B;
+}
+.screen::after{ /* 走査線 */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,rgba(0,0,0,0) 1px 3px);
+}
+
+/* 表示灯 */
+.lamps{display:flex;align-items:center;gap:9px}
+.lamp{
+  display:flex;flex-direction:column;align-items:center;gap:5px;width:52px;
+}
+.lamp .bulb{
+  width:34px;height:13px;border-radius:2px;
+  background:var(--case-dark);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.9),inset 0 0 0 1px #000;
+  transition:background .12s linear,box-shadow .12s linear;
+}
+.lamp .cap{font:600 9px/1 var(--silk);letter-spacing:.14em;color:#6C6759}
+.lamp.on .cap{color:var(--label)}
+.lamp.on[data-c="a"] .bulb{background:var(--amber);box-shadow:0 0 12px rgba(255,165,31,.75),inset 0 1px 2px rgba(255,255,255,.5)}
+.lamp.on[data-c="r"] .bulb{background:var(--red);box-shadow:0 0 14px rgba(255,59,36,.8),inset 0 1px 2px rgba(255,255,255,.45)}
+.lamp.on[data-c="g"] .bulb{background:var(--green);box-shadow:0 0 12px rgba(70,208,126,.7),inset 0 1px 2px rgba(255,255,255,.45)}
+.lamp-sep{width:1px;align-self:stretch;background:#221E14;margin:0 4px}
+
+/* ステータス行 */
+.statusbar{
+  display:flex;align-items:baseline;gap:12px;
+  border-top:1px solid #241E12;border-bottom:1px solid #241E12;
+  padding:8px 2px;
+}
+.statusbar .k{font:600 10px/1 var(--silk);letter-spacing:.2em;color:#7A5A20}
+.statusbar .v{
+  font:600 21px/1 var(--mono);letter-spacing:.16em;color:var(--amber);
+  text-shadow:0 0 12px rgba(255,165,31,.45);
+}
+.statusbar .v.blink{animation:blink .55s steps(1,end) infinite}
+@keyframes blink{50%{opacity:.15}}
+.statusbar .code{margin-left:auto;font:600 13px/1 var(--mono);letter-spacing:.14em;color:var(--red);text-shadow:0 0 10px rgba(255,59,36,.6)}
+
+/* 状況メッセージ帯 —— 「いまどうなっているか」だけを日本語で出す。
+   「次に何をするか」は絶対に書かない（書くとグラスが不要になる） */
+.msgband{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
+  background:#1D1509;border-radius:6px;padding:12px 15px;
+  box-shadow:inset 0 1px 5px rgba(0,0,0,.85),inset 0 0 0 1px #4A3413;
+}
+.msg-cap{
+  font:600 9px/1.5 var(--silk);letter-spacing:.2em;color:#8A6524;
+  writing-mode:vertical-rl;text-orientation:upright;height:38px;
+  display:grid;place-items:center;
+}
+.msg-text{
+  font:600 21px/1.35 var(--jp);color:#FFD79A;letter-spacing:.01em;
+  text-shadow:0 0 14px rgba(255,165,31,.28);
+}
+.msg-text.warn{color:#FF8B72;text-shadow:0 0 14px rgba(255,59,36,.35)}
+.msg-text.good{color:#8CE8B2;text-shadow:0 0 14px rgba(70,208,126,.35)}
+.msg-task{display:grid;justify-items:end;gap:6px}
+.msg-task .dots{display:flex;gap:4px}
+.msg-task .dots i{width:13px;height:5px;border-radius:1px;background:#33270F}
+.msg-task .dots i.on{background:var(--amber);box-shadow:0 0 6px rgba(255,165,31,.7)}
+.msg-task b{font:600 10px/1 var(--mono);letter-spacing:.14em;color:#8A6524}
+
+/* タスク達成 —— 盤面全体にかぶせて大きく出す */
+.clearpop{
+  position:absolute;inset:0;z-index:20;border-radius:14px;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  background:radial-gradient(ellipse at center,rgba(18,46,29,.94) 0%,rgba(5,12,8,.97) 70%);
+  pointer-events:none;
+}
+.clearpop.show{display:flex;animation:cpIn .18s ease-out}
+.cp-badge{font:600 12px/1 var(--silk);letter-spacing:.36em;color:#7FBF98;text-transform:uppercase}
+.cp-big{
+  font:700 92px/1 var(--jp);letter-spacing:.06em;color:#5BE894;
+  text-shadow:0 0 40px rgba(70,208,126,.65),0 0 90px rgba(70,208,126,.3);
+}
+.cp-sub{
+  font:600 20px/1 var(--jp);letter-spacing:.16em;color:#CDEFDA;
+  border-top:1px solid rgba(139,222,175,.28);padding-top:14px;
+}
+.clearpop.show .cp-big{animation:cpPop .5s cubic-bezier(.18,1.6,.4,1) both}
+.clearpop.show .cp-sub{animation:cpUp .4s .1s ease-out both}
+@keyframes cpIn{from{opacity:0}to{opacity:1}}
+@keyframes cpPop{0%{transform:scale(.55);opacity:0}55%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
+@keyframes cpUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* 大型メーター */
+.gauges{display:grid;grid-template-rows:auto auto;gap:22px;align-content:center}
+.gauge{display:grid;grid-template-columns:118px auto 1fr;align-items:center;gap:16px}
+.gauge .tag{display:grid;gap:6px}
+.gauge .tag b{font:600 12px/1.1 var(--silk);letter-spacing:.16em;color:var(--label);text-transform:uppercase}
+.gauge .tag i{font:500 10px/1 var(--mono);letter-spacing:.1em;color:#7A6E52;font-style:normal}
+.gauge .bar{
+  width:100%;height:8px;border-radius:2px;background:#1B160C;margin-top:2px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.9);overflow:hidden;
+}
+.gauge .bar span{display:block;height:100%;width:0;background:var(--amber);box-shadow:0 0 8px rgba(255,165,31,.6);transition:width .2s linear}
+.gauge .bar.hot span{background:var(--red);box-shadow:0 0 8px rgba(255,59,36,.7)}
+
+/* 小型読み取り値 */
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mini{
+  background:#0A0905;border-radius:5px;padding:9px 11px 8px;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.9),inset 0 0 0 1px #1C1710;
+  display:grid;gap:7px;
+}
+.mini .cap{font:600 9px/1 var(--silk);letter-spacing:.2em;color:#7A5A20}
+.mini .seg{height:34px}
+
+/* 7セグ */
+.seg{display:flex;align-items:center;gap:4px}
+.seg svg{display:block;height:100%;width:auto}
+.seg .sg{fill:var(--amber-off)}
+.seg .sg.on{fill:var(--amber);filter:drop-shadow(0 0 5px rgba(255,165,31,.75))}
+.seg .dp{fill:var(--amber-off)}
+.seg .dp.on{fill:var(--amber);filter:drop-shadow(0 0 5px rgba(255,165,31,.75))}
+.seg.big{height:88px}
+.seg.small{height:34px}
+.unit{font:600 14px/1 var(--silk);letter-spacing:.1em;color:#9A8250;align-self:end;padding-bottom:9px}
+
+/* 完了オーバーレイ */
+.done-veil{
+  position:absolute;inset:0;z-index:5;display:none;
+  background:linear-gradient(180deg,rgba(8,20,12,.95),rgba(6,14,9,.97));
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;
+}
+.done-veil.show{display:flex;animation:fadein .35s ease-out}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.done-veil .big{font:600 46px/1 var(--silk);letter-spacing:.14em;color:var(--green);text-shadow:0 0 26px rgba(70,208,126,.55)}
+.done-veil .sub{font:500 12px/1.7 var(--mono);letter-spacing:.14em;color:#7FA98F;text-align:center}
+
+/* ---------- 操作部 ---------- */
+.controls{display:grid;grid-template-rows:auto auto 1fr;gap:15px;min-height:0}
+.zone{
+  background:linear-gradient(180deg,#31312B,#2A2A25);
+  border-radius:8px;padding:12px 14px 13px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.35);
+}
+.zone-cap{
+  font:600 9px/1 var(--silk);letter-spacing:.26em;color:var(--label-dim);
+  text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.zone-cap::after{content:"";flex:1;height:1px;background:var(--seam);box-shadow:0 1px 0 rgba(255,255,255,.05)}
+
+/* 汎用ボタン */
+.btn{
+  position:relative;border:0;cursor:pointer;color:var(--label);
+  font-family:var(--silk);font-weight:600;letter-spacing:.12em;
+  background:linear-gradient(180deg,#57574D 0%,#43433B 52%,#37372F 100%);
+  border-radius:5px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -2px 0 rgba(0,0,0,.45),
+    0 2px 3px rgba(0,0,0,.45);
+  transition:transform .05s linear,box-shadow .05s linear,filter .1s linear;
+  overflow:hidden;
+}
+.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.btn.pressed,.btn:active{
+  transform:translateY(2px);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.65),inset 0 -1px 0 rgba(255,255,255,.05);
+  filter:brightness(.9);
+}
+.btn .hold{
+  position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--amber);
+  box-shadow:0 0 8px rgba(255,165,31,.8);
+}
+
+.fnrow{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.fnrow .btn{height:62px;font-size:17px}
+
+.midrow{display:grid;grid-template-columns:1fr 132px;gap:14px;align-items:stretch}
+.modewrap{display:grid;gap:9px}
+.modewrap .btn{height:56px;font-size:15px}
+.modescale{display:flex;justify-content:space-between;padding:0 6px}
+.modescale span{font:600 11px/1 var(--silk);letter-spacing:.1em;color:#6C6759}
+.modescale span.act{color:var(--amber);text-shadow:0 0 8px rgba(255,165,31,.6)}
+
+.dial{
+  display:grid;grid-template-rows:1fr 1fr;gap:8px;
+  background:#26261F;border-radius:6px;padding:8px;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.6);
+}
+.dial .btn{height:100%;min-height:40px;font-size:15px;display:grid;place-items:center}
+
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:9px;height:100%}
+.keypad .btn{font-size:20px;min-height:0}
+.keypad .btn.enter{background:linear-gradient(180deg,#4E6B52,#39503C 55%,#2E4231);font-size:13px}
+.keypad .btn.clr{background:linear-gradient(180deg,#6B5A4E,#50433A 55%,#413630)}
+.zone.pad{display:grid;grid-template-rows:auto 1fr;min-height:0}
+
+/* ---------- 下段 ---------- */
+.bottom{
+  display:grid;grid-template-columns:196px 1fr 168px;gap:20px;align-items:center;
+  border-top:1px solid var(--seam);padding-top:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055);
+}
+.bay{display:flex;align-items:center;gap:16px}
+.bay-cap{font:600 9px/1 var(--silk);letter-spacing:.24em;color:var(--label-dim);text-transform:uppercase}
+
+.power{
+  width:150px;height:82px;font-size:15px;
+  background:linear-gradient(180deg,#3F6A4B,#2E5038 55%,#25412D);
+}
+.power .glowring{position:absolute;inset:6px;border-radius:3px;border:1px solid rgba(70,208,126,.18)}
+.power.live{background:linear-gradient(180deg,#4B8A5C,#357447 55%,#2A5E39);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.45),0 0 22px rgba(70,208,126,.35),0 2px 3px rgba(0,0,0,.45)}
+
+.valves{display:flex;gap:16px;justify-content:center}
+.valve{width:104px;height:82px;display:grid;grid-template-rows:1fr auto;gap:0;padding:0;background:linear-gradient(180deg,#4A4A42,#38382F)}
+.valve .cap{height:100%;display:grid;place-items:center;font-size:16px;letter-spacing:.16em;color:#12120E;text-shadow:0 1px 0 rgba(255,255,255,.25)}
+.valve[data-v="1"] .cap{background:linear-gradient(180deg,#FF6A55,#D62E1A)}
+.valve[data-v="2"] .cap{background:linear-gradient(180deg,#6FA9FF,#2C6BD8)}
+.valve[data-v="3"] .cap{background:linear-gradient(180deg,#FFDE73,#E0AB12)}
+.valve .foot{font:600 9px/1 var(--silk);letter-spacing:.16em;color:var(--label-dim);padding:6px 0 7px;background:#2F2F29}
+
+.reset{
+  width:150px;height:82px;border-radius:50% / 34%;font-size:15px;color:#1A0906;
+  background:radial-gradient(ellipse at 50% 25%,#FF7A62,#E23C22 55%,#A82312 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -4px 6px rgba(0,0,0,.4),0 3px 5px rgba(0,0,0,.5);
+}
+.reset .hold{border-radius:0 0 6px 6px}
+
+/* ---------- オペレーター（HintBot台本）パネル ---------- */
+#ops{
+  position:fixed;top:0;right:0;height:100%;width:min(420px,92vw);z-index:50;
+  background:var(--ops-bg);color:var(--ops-text);font-family:var(--jp);
+  border-left:1px solid var(--ops-line);
+  transform:translateX(101%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column;
+  box-shadow:-24px 0 60px rgba(0,0,0,.6);
+}
+#ops.open{transform:none}
+.ops-head{padding:16px 18px 13px;border-bottom:1px solid var(--ops-line);display:flex;align-items:center;gap:10px}
+.ops-head h1{font:600 13px/1.3 var(--jp);letter-spacing:.06em}
+.ops-head .step{margin-left:auto;font:600 11px/1 var(--mono);color:var(--ops-dim);letter-spacing:.08em}
+.ops-close{margin-left:6px;background:none;border:1px solid var(--ops-line);color:var(--ops-dim);border-radius:5px;width:26px;height:26px;cursor:pointer;font-size:15px;line-height:1}
+.ops-now{padding:16px 18px;border-bottom:1px solid var(--ops-line);background:var(--ops-card)}
+.ops-now .k{font:600 10px/1 var(--jp);letter-spacing:.18em;color:var(--amber);margin-bottom:9px}
+.ops-now .line{font:500 17px/1.6 var(--jp);letter-spacing:.01em}
+.ops-now .note{margin-top:9px;font:400 12px/1.6 var(--jp);color:var(--ops-dim)}
+.ops-list{flex:1;overflow-y:auto;padding:12px 0 20px}
+.ops-item{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:8px 18px;align-items:start}
+.ops-item .n{font:600 11px/1.6 var(--mono);color:#5E5A50;text-align:right}
+.ops-item .t{font:400 13px/1.55 var(--jp);color:var(--ops-dim)}
+.ops-item.cur{background:rgba(255,165,31,.09)}
+.ops-item.cur .n{color:var(--amber)}
+.ops-item.cur .t{color:var(--ops-text);font-weight:500}
+.ops-item.past .t{color:#5E5A50;text-decoration:line-through;text-decoration-color:#3A3A35}
+.ops-foot{border-top:1px solid var(--ops-line);padding:12px 18px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.ops-btn{
+  font:500 12px/1 var(--jp);color:var(--ops-text);background:#2F2F2B;
+  border:1px solid var(--ops-line);border-radius:6px;padding:8px 12px;cursor:pointer;
+}
+.ops-btn[aria-pressed="true"]{background:var(--amber);color:#1A1206;border-color:var(--amber)}
+.ops-btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.ops-json{width:100%;font:400 10px/1.5 var(--mono);color:#6E6A5F;white-space:pre-wrap;word-break:break-all}
+
+#opstab{
+  position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:49;
+  writing-mode:vertical-rl;font:600 10px/1 var(--jp);letter-spacing:.24em;
+  background:#2A2A26;color:#8A8779;border:1px solid #3A3A35;border-right:0;
+  border-radius:7px 0 0 7px;padding:16px 7px;cursor:pointer;opacity:.72;
+}
+#opstab:hover,#opstab:focus-visible{opacity:1;outline:none}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001s!important;transition-duration:.001s!important}
+}
+</style>
+
+<div id="stage">
+  <div class="panel">
+    <span class="screw tl"></span><span class="screw tr"></span>
+    <span class="screw bl"></span><span class="screw br"></span>
+
+    <div class="nameplate">
+      <span class="np-mark" id="mark">X</span>
+      <span class="np-model">X-42</span>
+      <span class="np-sub">Pressure Control Unit</span>
+      <span class="np-spacer"></span>
+      <span class="np-serial" id="serial">S/N 8841-K · REV 3</span>
+    </div>
+
+    <div class="main">
+      <!-- ================= 表示部 ================= -->
+      <div class="screen">
+        <div class="lamps">
+          <div class="lamp" data-c="a" id="lampA"><span class="bulb"></span><span class="cap">A</span></div>
+          <div class="lamp" data-c="a" id="lampB"><span class="bulb"></span><span class="cap">B</span></div>
+          <div class="lamp" data-c="a" id="lampC"><span class="bulb"></span><span class="cap">C</span></div>
+          <div class="lamp" data-c="a" id="lampD"><span class="bulb"></span><span class="cap">D</span></div>
+          <span class="lamp-sep"></span>
+          <div class="lamp" data-c="g" id="lampPWR"><span class="bulb"></span><span class="cap">PWR</span></div>
+          <div class="lamp" data-c="r" id="lampALM"><span class="bulb"></span><span class="cap">ALM</span></div>
+          <div class="lamp" data-c="g" id="lampRDY"><span class="bulb"></span><span class="cap">RDY</span></div>
+        </div>
+
+        <div class="statusbar">
+          <span class="k">STATUS</span>
+          <span class="v" id="statusText">— — —</span>
+          <span class="code" id="errText"></span>
+        </div>
+
+        <div class="msgband">
+          <span class="msg-cap">状況</span>
+          <span class="msg-text" id="msgText">電源が入っていません</span>
+          <span class="msg-task">
+            <span class="dots" id="taskDots"></span>
+            <b id="taskNum">TASK 0 / 6</b>
+          </span>
+        </div>
+
+        <div class="gauges">
+          <div class="gauge">
+            <span class="tag">
+              <b>Pressure</b><i>RANGE 0–60</i>
+              <span class="bar" id="barPress"><span></span></span>
+            </span>
+            <span class="seg big" id="segPress"></span>
+            <span class="unit">kPa</span>
+          </div>
+          <div class="gauge">
+            <span class="tag">
+              <b>Temp</b><i>LIMIT 85</i>
+              <span class="bar" id="barTemp"><span></span></span>
+            </span>
+            <span class="seg big" id="segTemp"></span>
+            <span class="unit">&deg;C</span>
+          </div>
+        </div>
+
+        <div class="minis">
+          <div class="mini"><span class="cap">SEQ</span><span class="seg small" id="segSeq"></span></div>
+          <div class="mini"><span class="cap">DIAL</span><span class="seg small" id="segDial"></span></div>
+          <div class="mini"><span class="cap">SET-P</span><span class="seg small" id="segSetp"></span></div>
+        </div>
+
+        <div class="done-veil" id="doneVeil">
+          <div class="big">SYSTEM READY</div>
+          <div class="sub" id="doneSub"></div>
+        </div>
+      </div>
+
+      <!-- ================= 操作部 ================= -->
+      <div class="controls">
+        <div class="zone">
+          <div class="zone-cap">Function</div>
+          <div class="fnrow">
+            <button class="btn" data-key="K1">K1<span class="hold"></span></button>
+            <button class="btn" data-key="K2">K2<span class="hold"></span></button>
+            <button class="btn" data-key="S3">S3<span class="hold"></span></button>
+            <button class="btn" data-key="AUX">AUX<span class="hold"></span></button>
+          </div>
+        </div>
+
+        <div class="zone">
+          <div class="zone-cap">Mode / Adjust</div>
+          <div class="midrow">
+            <div class="modewrap">
+              <button class="btn" data-key="MODE">MODE<span class="hold"></span></button>
+              <div class="modescale" id="modeScale">
+                <span data-m="A">A</span><span data-m="B">B</span><span data-m="C">C</span><span data-m="D">D</span>
+              </div>
+            </div>
+            <div class="dial">
+              <button class="btn" data-key="UP">&#9650;<span class="hold"></span></button>
+              <button class="btn" data-key="DOWN">&#9660;<span class="hold"></span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="zone pad">
+          <div class="zone-cap">Entry</div>
+          <div class="keypad" id="keypad">
+            <button class="btn" data-key="7">7<span class="hold"></span></button>
+            <button class="btn" data-key="8">8<span class="hold"></span></button>
+            <button class="btn" data-key="9">9<span class="hold"></span></button>
+            <button class="btn" data-key="4">4<span class="hold"></span></button>
+            <button class="btn" data-key="5">5<span class="hold"></span></button>
+            <button class="btn" data-key="6">6<span class="hold"></span></button>
+            <button class="btn" data-key="1">1<span class="hold"></span></button>
+            <button class="btn" data-key="2">2<span class="hold"></span></button>
+            <button class="btn" data-key="3">3<span class="hold"></span></button>
+            <button class="btn clr" data-key="CLR">CLR<span class="hold"></span></button>
+            <button class="btn" data-key="0">0<span class="hold"></span></button>
+            <button class="btn enter" data-key="ENTER">ENTER<span class="hold"></span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 下段 ================= -->
+    <div class="bottom">
+      <div class="bay">
+        <button class="btn power" data-key="POWER" id="powerBtn">POWER<span class="glowring"></span><span class="hold"></span></button>
+      </div>
+      <div class="bay" style="justify-content:center">
+        <span class="bay-cap">Valve</span>
+        <div class="valves">
+          <button class="btn valve" data-v="1" data-key="V1"><span class="cap">V1</span><span class="foot">PURGE</span><span class="hold"></span></button>
+          <button class="btn valve" data-v="2" data-key="V2"><span class="cap">V2</span><span class="foot">RELIEF</span><span class="hold"></span></button>
+          <button class="btn valve" data-v="3" data-key="V3"><span class="cap">V3</span><span class="foot">BYPASS</span><span class="hold"></span></button>
+        </div>
+      </div>
+      <div class="bay" style="justify-content:flex-end">
+        <button class="btn reset" data-key="RESET">RESET<span class="hold"></span></button>
+      </div>
+    </div>
+
+    <div class="clearpop" id="clearPop" aria-live="polite">
+      <div class="cp-badge">Task Complete</div>
+      <div class="cp-big">クリア！！</div>
+      <div class="cp-sub" id="cpSub"></div>
+    </div>
+  </div>
+</div>
+
+<button id="opstab" title="オペレーター用の指示台本を開く">指示台本</button>
+
+<aside id="ops" aria-label="HintBot 指示台本">
+  <div class="ops-head">
+    <h1>HintBot 指示台本</h1>
+    <span class="step" id="opsStep">0 / 11</span>
+    <button class="ops-close" id="opsClose" aria-label="閉じる">&times;</button>
+  </div>
+  <div class="ops-now">
+    <div class="k">いま読み上げる指示</div>
+    <div class="line" id="opsLine">—</div>
+    <div class="note" id="opsNote"></div>
+  </div>
+  <div class="ops-list" id="opsList"></div>
+  <div class="ops-foot">
+    <button class="ops-btn" id="opsSound" aria-pressed="true">音 ON</button>
+    <button class="ops-btn" id="opsReset">最初から</button>
+    <button class="ops-btn" id="opsJsonToggle" aria-pressed="false">state</button>
+    <pre class="ops-json" id="opsJson" hidden></pre>
+  </div>
+</aside>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   1. 7セグメント表示のレンダラ
+   ============================================================ */
+var SEGMAP={
+  "0":"abcdef","1":"bc","2":"abged","3":"abgcd","4":"fgbc","5":"afgcd",
+  "6":"afgedc","7":"abc","8":"abcdefg","9":"abfgcd","-":"g"," ":""
+};
+var SEGPTS={
+  a:"14,8 46,8 52,14 46,20 14,20 8,14",
+  g:"14,44 46,44 52,50 46,56 14,56 8,50",
+  d:"14,80 46,80 52,86 46,92 14,92 8,86",
+  f:"8,16 14,22 14,42 8,48 2,42 2,22",
+  b:"52,16 58,22 58,42 52,48 46,42 46,22",
+  e:"8,52 14,58 14,78 8,84 2,78 2,58",
+  c:"52,52 58,58 58,78 52,84 46,78 46,58"
+};
+function digitSVG(){
+  var s='<svg viewBox="0 0 60 100" aria-hidden="true">';
+  for(var k in SEGPTS){ s+='<polygon class="sg s-'+k+'" points="'+SEGPTS[k]+'"></polygon>'; }
+  return s+'</svg>';
+}
+function dotSVG(){
+  return '<svg viewBox="0 0 16 100" aria-hidden="true"><circle class="dp" cx="8" cy="86" r="6"></circle></svg>';
+}
+/* 空白桁は消灯セグごと描かない（薄い「8」が残ると 059 が 859 に読める） */
+function blankSVG(){ return '<svg viewBox="0 0 60 100" aria-hidden="true"></svg>'; }
+
+/* text 例: "42.3" / " 59" / "350" */
+function renderSeg(el,text){
+  var chars=String(text).split("");
+  var want=chars.map(function(c){ return c==="."?".":(c===" "?"_":"d"); }).join("");
+  if(el.dataset.shape!==want){
+    var html="";
+    chars.forEach(function(c){
+      html+= (c==="."? dotSVG() : (c===" "? blankSVG() : digitSVG()));
+    });
+    el.innerHTML=html; el.dataset.shape=want;
+  }
+  var nodes=el.children;
+  chars.forEach(function(c,idx){
+    var node=nodes[idx];
+    if(c===" ") return;
+    if(c==="."){ node.querySelector(".dp").classList.add("on"); return; }
+    var on=SEGMAP[c]!==undefined?SEGMAP[c]:"";
+    for(var k in SEGPTS){
+      node.querySelector(".s-"+k).classList.toggle("on",on.indexOf(k)>=0);
+    }
+  });
+}
+function pad(n,len){ var s=String(n); while(s.length<len) s=" "+s; return s; }
+
+/* ============================================================
+   2. 音（クリック・警報）
+   ============================================================ */
+var actx=null,soundOn=true;
+function beep(freq,dur,vol,type){
+  if(!soundOn) return;
+  try{
+    if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    var o=actx.createOscillator(),g=actx.createGain();
+    o.type=type||"square"; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(vol,actx.currentTime+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime+dur+0.02);
+  }catch(e){}
+}
+var SFX={
+  tick:function(){beep(1100,.03,.05,"square")},
+  ok:function(){beep(880,.07,.08,"square");setTimeout(function(){beep(1320,.09,.07,"square")},70)},
+  err:function(){beep(180,.22,.13,"sawtooth");setTimeout(function(){beep(150,.28,.13,"sawtooth")},240)},
+  alarm:function(){beep(660,.12,.1,"square");setTimeout(function(){beep(660,.12,.1,"square")},200);setTimeout(function(){beep(660,.12,.1,"square")},400)},
+  boot:function(){[330,440,554,660].forEach(function(f,i){setTimeout(function(){beep(f,.09,.07,"triangle")},i*90)})},
+  clear:function(){[784,988,1175].forEach(function(f,i){setTimeout(function(){beep(f,.13,.1,"triangle")},i*85)});
+                   setTimeout(function(){beep(1568,.3,.09,"triangle")},255)},
+  done:function(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){beep(f,.16,.09,"triangle")},i*130)})}
+};
+
+/* ============================================================
+   3. 手順定義
+   ============================================================ */
+var MODES=["A","B","C","D"];
+var S={};                        /* 機械の状態 */
+var busy=false;                  /* 自動遷移中は入力を無視 */
+var timers=[];
+function later(fn,ms){ var t=setTimeout(fn,ms); timers.push(t); return t; }
+function clearTimers(){ timers.forEach(function(t){clearTimeout(t);clearInterval(t);}); timers=[]; }
+
+/* msg = 盤面に出す「状況」。操作方法は絶対に含めない。 */
+var STEPS=[
+  { id:"PWR",   status:"OFFLINE",  msg:"電源が入っていません",
+    line:function(){ return "POWER ボタンを 1.5 秒、長押ししてください。"; },
+    note:"短く押しても起動しません（体験者はここで必ず詰まります）。" },
+
+  { id:"U1",    status:"LOCKED",   msg:"操作パネルはロックされています",
+    line:function(){ return "K2 を押してください。"; },
+    note:"解錠シーケンス 1/3。順番を間違えると E-01 でロックします。" },
+
+  { id:"U2",    status:"LOCKED",   msg:"解錠中です（1 / 3 完了）",
+    line:function(){ return "次に S3 を押してください。"; },
+    note:"解錠シーケンス 2/3。" },
+
+  { id:"U3",    status:"LOCKED",   msg:"解錠中です（2 / 3 完了）",
+    line:function(){ return "次に K1 を押してください。"; },
+    note:"解錠シーケンス 3/3。成功すると SEQ 番号が出ます。" },
+
+  { id:"SEQ",   status:"AUTH",     msg:"認証コードを表示しました",
+    line:function(){ return "画面の SEQ の数字を読み上げてください。"; },
+    note:function(){ return "体験者が「"+S.seq+"」と答えたら →「確認しました。ダイヤル ▲▼ を "+S.seq[1]+" に合わせて ENTER を押してください」。（規則：SEQ の真ん中の桁）"; } },
+
+  { id:"MODE",  status:"MODE SEL", msg:"運転モードが確定していません",
+    line:function(){
+      var n=(MODES.indexOf("B")-MODES.indexOf(S.mode)+4)%4;
+      return "MODE を "+n+" 回押して B にし、ENTER を押してください。";
+    },
+    listLine:"MODE を押して B にし、ENTER を押してください。",
+    note:"押しすぎたら「行き過ぎです。あと n 回押して B に戻してください」と言い直してください（この行は自動で更新されます）。" },
+
+  { id:"SETP",  status:"SET-P",     msg:"目標圧力が未設定です",
+    line:function(){ return "テンキーで 350 と入力し、ENTER を押してください。"; },
+    note:"打ち間違いは CLR で消せます。ENTER が違う値なら E-04。" },
+
+  { id:"RAMP",  status:"PRESSURIZE", msg:"加圧しています…",
+    line:function(){ return "そのままお待ちください。圧力が上がります。"; },
+    note:"自動進行。ボタンを押しても何も起きません。" },
+
+  { id:"VALVE", status:"DEVIATION", msg:"圧力が上限を超えました", warn:true,
+    line:function(){ return "圧力が 40 を超えました。青い V2 バルブを押してください。"; },
+    note:"ここが「AIが状態を見て指示を変えている」と伝わる山場。V1／V3 は E-05。" },
+
+  { id:"COOL",  status:"TEMP HIGH", msg:"圧力は安定。今度は温度が上限を超えました", warn:true,
+    line:function(){ return "AUX を 1.5 秒長押しして冷却してください。"; },
+    note:"圧力は 35.0 に安定。今度は温度が上限 85 を超えています。" },
+
+  { id:"CONF",  status:"CONFIRM",   msg:"温度が下がりました。確認待ちです",
+    line:function(){ return "TEMP の数値を読み上げてください。"; },
+    note:function(){ return "体験者が「"+Math.round(S.temp)+"」と答えたら →「確認しました。K2 を押してください」。"; } },
+
+  { id:"RUN",   status:"ARMED",     msg:"運転開始の準備ができました",
+    line:function(){ return "最後です。S3 を 2 秒長押しすると運転開始です。"; },
+    note:"完了で SYSTEM READY。所要時間が出ます。" }
+];
+
+/* タスク＝「クリア！！」を出す区切り。last はそのタスクの最終ステップ index */
+var TASKS=[
+  { name:"電源投入",      last:0  },
+  { name:"ロック解除",     last:3  },
+  { name:"認証コード入力",  last:4  },
+  { name:"運転条件の設定",  last:6  },
+  { name:"圧力異常の処置",  last:8  },
+  { name:"冷却と確認",     last:10 }
+];
+var ERRMSG={
+  "E-01":"LOCK SEQ",
+  "E-02":"AUTH FAIL",
+  "E-03":"MODE ERR",
+  "E-04":"SETPOINT",
+  "E-05":"VALVE ERR",
+  "E-06":"CONFIRM"
+};
+
+/* ============================================================
+   4. 状態
+   ============================================================ */
+function reset(){
+  clearTimers(); busy=false;
+  S={
+    phase:"off",           /* off | run | error | done */
+    step:0,
+    power:false,
+    mode:MODES[[0,2,3][Math.floor(Math.random()*3)]],  /* B 以外から開始 */
+    seq:String(Math.floor(Math.random()*9)+1)+String(Math.floor(Math.random()*10))+String(Math.floor(Math.random()*10)),
+    seqShown:false,
+    dial:0,
+    kb:"",
+    pressure:0,
+    temp:24,
+    err:null,
+    t0:null,
+    elapsed:null
+  };
+  doneVeil.classList.remove("show");
+  clearTimeout(popT); $("clearPop").classList.remove("show");
+  paint();
+}
+
+/* ============================================================
+   5. 描画
+   ============================================================ */
+var $=function(id){return document.getElementById(id)};
+var statusText=$("statusText"), errText=$("errText"), doneVeil=$("doneVeil"), doneSub=$("doneSub");
+
+function setLamp(id,on){ $(id).classList.toggle("on",!!on); }
+
+function paint(){
+  var st=STEPS[S.step];
+  /* ステータス */
+  if(S.phase==="error"){
+    statusText.textContent="ERROR";
+    statusText.classList.add("blink");
+    errText.textContent=S.err+"  "+ERRMSG[S.err];
+  }else if(S.phase==="done"){
+    statusText.textContent="RUNNING";
+    statusText.classList.remove("blink");
+    errText.textContent="";
+  }else{
+    statusText.textContent=S.phase==="off"?"OFFLINE":(st?st.status:"—");
+    statusText.classList.remove("blink");
+    errText.textContent="";
+  }
+
+  /* 表示灯 */
+  var lit=S.power&&S.step>=4;
+  ["A","B","C","D"].forEach(function(m){ setLamp("lamp"+m, lit&&S.mode===m); });
+  setLamp("lampPWR",S.power);
+  setLamp("lampALM",S.phase==="error"||(S.phase!=="done"&&st&&(st.id==="VALVE"||st.id==="COOL")));
+  setLamp("lampRDY",S.phase==="done");
+
+  /* メーター */
+  if(!S.power){
+    /* 消灯中は画面を完全に暗くする */
+    renderSeg($("segPress"),"    "); renderSeg($("segTemp"),"   ");
+    renderSeg($("segSeq"),"   "); renderSeg($("segDial")," "); renderSeg($("segSetp"),"   ");
+  }else{
+    var p=S.pressure.toFixed(1);
+    while(p.length<4) p=" "+p;
+    renderSeg($("segPress"),p.slice(0,-2)+"."+p.slice(-1));
+    renderSeg($("segTemp"),pad(Math.round(S.temp),3));
+    renderSeg($("segSeq"),S.seqShown?S.seq:"---");
+    renderSeg($("segDial"),String(S.dial));
+    renderSeg($("segSetp"),S.kb?pad(S.kb,3):(S.step>6?"350":"---"));
+  }
+  $("barPress").firstElementChild.style.width=Math.min(100,S.pressure/60*100)+"%";
+  $("barPress").classList.toggle("hot",S.pressure>40);
+  $("barTemp").firstElementChild.style.width=Math.min(100,S.temp/120*100)+"%";
+  $("barTemp").classList.toggle("hot",S.temp>85);
+
+  /* 状況メッセージ（操作方法は書かない） */
+  var m=$("msgText"), msg, tone="";
+  if(S.phase==="error"){
+    msg="操作を受け付けられません（"+S.err+"）"; tone="warn";
+  }else if(S.phase==="done"){
+    msg="運転を開始しました。すべてのタスク完了です"; tone="good";
+  }else if(!S.power){
+    msg=STEPS[0].msg;
+  }else{
+    msg=st?st.msg:"";
+    if(st&&st.warn) tone="warn";
+  }
+  m.textContent=msg;
+  m.classList.toggle("warn",tone==="warn");
+  m.classList.toggle("good",tone==="good");
+
+  /* タスク進捗 */
+  var cleared=0;
+  for(var ti=0;ti<TASKS.length;ti++){ if(S.phase==="done"||S.step>TASKS[ti].last) cleared++; }
+  var dots=$("taskDots");
+  if(dots.children.length!==TASKS.length){
+    dots.innerHTML=new Array(TASKS.length+1).join("<i></i>");
+  }
+  [].forEach.call(dots.children,function(d,i){ d.classList.toggle("on",i<cleared); });
+  $("taskNum").textContent="TASK "+cleared+" / "+TASKS.length;
+
+  /* MODE 目盛 */
+  [].forEach.call($("modeScale").children,function(el){
+    el.classList.toggle("act",lit&&el.dataset.m===S.mode);
+  });
+  $("powerBtn").classList.toggle("live",S.power);
+
+  paintOps();
+}
+
+/* ============================================================
+   6. 進行
+   ============================================================ */
+/* すべてのステップ遷移はここを通す（タスク達成の判定を一箇所にまとめる） */
+function setStep(n){
+  var prev=S.step, done=null;
+  S.step=n;
+  if(n>prev){
+    for(var i=0;i<TASKS.length;i++){ if(TASKS[i].last===prev) done=TASKS[i]; }
+  }
+  var st=STEPS[n];
+  if(st&&st.id==="SEQ") S.seqShown=true;
+  if(done) popClear(done.name); else SFX.ok();
+  if(st&&st.id==="RAMP") startRamp();
+  paint();
+}
+function advance(){ setStep(S.step+1); }
+
+var popT=null;
+function popClear(name){
+  $("cpSub").textContent=name;
+  var el=$("clearPop");
+  el.classList.remove("show");
+  void el.offsetWidth;              /* アニメーションを再生し直す */
+  el.classList.add("show");
+  SFX.clear();
+  clearTimeout(popT);
+  popT=setTimeout(function(){ el.classList.remove("show"); },1400);
+}
+function fail(code){
+  S.phase="error"; S.err=code; S.kb="";
+  SFX.err();
+  paint();
+}
+function startRamp(){
+  busy=true;
+  var iv=setInterval(function(){
+    S.pressure=Math.min(42.4,S.pressure+1.35);
+    S.temp=Math.min(61,S.temp+1.1);
+    paint();
+    if(S.pressure>=42.4){
+      clearInterval(iv);
+      busy=false;
+      S.step++;                    /* → VALVE（タスク途中なのでクリア演出なし） */
+      SFX.alarm();
+      paint();
+    }
+  },110);
+  timers.push(iv);
+}
+function stabilize(){
+  busy=true;
+  var iv=setInterval(function(){
+    S.pressure=Math.max(35,S.pressure-0.5);
+    S.temp=Math.min(88,S.temp+1.4);
+    paint();
+    if(S.pressure<=35&&S.temp>=88){
+      clearInterval(iv); busy=false;
+      setStep(S.step+1);           /* → COOL（ここで「圧力異常の処置」クリア） */
+      later(SFX.alarm,1700);       /* クリア演出のあとに警報 */
+    }
+  },90);
+  timers.push(iv);
+}
+function cooldown(){
+  busy=true;
+  var iv=setInterval(function(){
+    S.temp=Math.max(72,S.temp-1.2);
+    paint();
+    if(S.temp<=72){
+      clearInterval(iv); busy=false;
+      S.step++;                    /* → CONF（タスク途中なのでクリア演出なし） */
+      SFX.ok(); paint();
+    }
+  },80);
+  timers.push(iv);
+}
+function finish(){
+  S.phase="done";
+  S.elapsed=S.t0?Math.round((Date.now()-S.t0)/1000):null;
+  SFX.done();
+  doneSub.innerHTML="ALL TASKS CLEAR &nbsp;·&nbsp; "+TASKS.length+" / "+TASKS.length
+    +(S.elapsed!==null?"<br>ELAPSED "+Math.floor(S.elapsed/60)+"&#39;"+("0"+(S.elapsed%60)).slice(-2)+"&quot;":"")
+    +"<br>RESET を3秒長押しで初期化";
+  doneVeil.classList.add("show");
+  paint();
+}
+
+/* ============================================================
+   7. 入力ディスパッチ
+   ============================================================ */
+var FN=["K1","K2","S3","AUX","MODE"];
+var VLV=["V1","V2","V3"];
+var DIG="0123456789";
+
+function press(key){
+  SFX.tick();
+  if(key==="RESET"){
+    if(S.phase==="error"){ S.phase="run"; S.err=null; paint(); }
+    return;
+  }
+  if(S.phase==="error"||S.phase==="done"||busy) return;
+
+  if(!S.power){
+    /* 電源前は POWER 長押し以外すべて無反応 */
+    if(key==="POWER"){ statusFlash("PWR ?"); }   /* 生きてはいるが、押し方は教えない */
+    return;
+  }
+  if(key==="POWER") return;
+
+  var st=STEPS[S.step]; if(!st) return;
+
+  switch(st.id){
+    case "U1": step_unlock(key,"K2"); break;
+    case "U2": step_unlock(key,"S3"); break;
+    case "U3": step_unlock(key,"K1"); break;
+
+    case "SEQ":
+      if(key==="UP"){ S.dial=(S.dial+1)%10; paint(); return; }
+      if(key==="DOWN"){ S.dial=(S.dial+9)%10; paint(); return; }
+      if(key==="ENTER"){ (S.dial===Number(S.seq[1]))?advance():fail("E-02"); return; }
+      if(key==="CLR") return;
+      fail("E-02"); break;
+
+    case "MODE":
+      if(key==="MODE"){ S.mode=MODES[(MODES.indexOf(S.mode)+1)%4]; paint(); return; }
+      if(key==="ENTER"){ (S.mode==="B")?advance():fail("E-03"); return; }
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-03"); break;
+
+    case "SETP":
+      if(DIG.indexOf(key)>=0&&key.length===1){ if(S.kb.length<3){ S.kb+=key; paint(); } return; }
+      if(key==="CLR"){ S.kb=""; paint(); return; }
+      if(key==="ENTER"){ if(S.kb==="350"){ advance(); } else { fail("E-04"); } return; }
+      if(key==="UP"||key==="DOWN") return;
+      fail("E-04"); break;
+
+    case "RAMP": return;   /* 自動進行中 */
+
+    case "VALVE":
+      if(key==="V2"){ stabilize(); paint(); return; }
+      if(VLV.indexOf(key)>=0) { fail("E-05"); return; }
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-05"); break;
+
+    case "COOL":
+      if(key==="AUX"){ statusFlash("HOLD 1.5s"); return; }
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-05"); break;
+
+    case "CONF":
+      if(key==="K2"){ advance(); return; }
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-06"); break;
+
+    case "RUN":
+      if(key==="S3"){ statusFlash("HOLD 2.0s"); return; }
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-06"); break;
+  }
+}
+function step_unlock(key,want){
+  if(key===want){ advance(); return; }
+  if(key==="UP"||key==="DOWN"||key==="CLR"){ return; }
+  fail("E-01");
+}
+
+function hold(key,ms){
+  if(key==="RESET"&&ms>=3000){ SFX.boot(); reset(); return; }
+  if(S.phase==="error"||S.phase==="done"||busy) return;
+
+  if(key==="POWER"&&!S.power&&ms>=1500){
+    S.power=true; S.t0=Date.now();
+    SFX.boot(); lampTest();
+    return;
+  }
+  var st=STEPS[S.step]; if(!st||!S.power) return;
+  if(st.id==="COOL"&&key==="AUX"&&ms>=1500){ cooldown(); paint(); return; }
+  if(st.id==="RUN"&&key==="S3"&&ms>=2000){ finish(); return; }
+}
+function lampTest(){
+  busy=true;
+  statusText.textContent="BOOT";
+  ["lampA","lampB","lampC","lampD","lampPWR","lampALM","lampRDY"].forEach(function(id){$(id).classList.add("on")});
+  S.pressure=0; S.temp=24;
+  renderSeg($("segPress"),"88.8"); renderSeg($("segTemp"),"888");
+  renderSeg($("segSeq"),"888"); renderSeg($("segDial"),"8"); renderSeg($("segSetp"),"888");
+  later(function(){
+    busy=false;
+    S.phase="run";
+    setStep(1);                    /* → 「電源投入」クリア */
+  },1500);
+}
+var flashT=null;
+function statusFlash(msg){
+  var keep=statusText.textContent;
+  statusText.textContent=msg;
+  clearTimeout(flashT);
+  flashT=setTimeout(function(){ paint(); },900);
+}
+
+/* ============================================================
+   8. ボタン配線（タップ／長押し）
+   ============================================================ */
+document.querySelectorAll(".btn").forEach(function(btn){
+  var key=btn.dataset.key, t0=0, raf=null, fill=btn.querySelector(".hold");
+  var HOLDMAX={POWER:1500,AUX:1500,S3:2000,RESET:3000}[key]||0;
+
+  function down(e){
+    e.preventDefault();
+    try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+    btn.classList.add("pressed");
+    t0=Date.now();
+    if(HOLDMAX){
+      (function tick(){
+        var p=Math.min(1,(Date.now()-t0)/HOLDMAX);
+        fill.style.width=(p*100)+"%";
+        if(p<1) raf=requestAnimationFrame(tick);
+      })();
+    }
+  }
+  function up(e){
+    if(!t0) return;
+    e.preventDefault();
+    btn.classList.remove("pressed");
+    cancelAnimationFrame(raf);
+    fill.style.width="0";
+    var ms=Date.now()-t0; t0=0;
+    if(HOLDMAX&&ms>=HOLDMAX){ hold(key,ms); }
+    else{ press(key); }
+  }
+  function cancel(){ btn.classList.remove("pressed"); cancelAnimationFrame(raf); fill.style.width="0"; t0=0; }
+
+  btn.addEventListener("pointerdown",down);
+  btn.addEventListener("pointerup",up);
+  btn.addEventListener("pointercancel",cancel);
+  btn.addEventListener("contextmenu",function(e){e.preventDefault()});
+});
+
+/* キーボード（PC 検証用） */
+var KEYMAP={q:"K1",w:"K2",e:"S3",r:"AUX",m:"MODE",Enter:"ENTER",Backspace:"CLR",
+  ArrowUp:"UP",ArrowDown:"DOWN",z:"V1",x:"V2",c:"V3"};
+document.addEventListener("keydown",function(e){
+  if(e.repeat) return;
+  if(e.key==="o"){ toggleOps(); return; }
+  if(e.key==="p"){ hold("POWER",9999); return; }
+  if(e.key==="h"){ /* 長押し代替: 現在ステップの長押し対象 */
+    var st=STEPS[S.step];
+    if(st&&st.id==="COOL") hold("AUX",9999);
+    else if(st&&st.id==="RUN") hold("S3",9999);
+    return;
+  }
+  if(e.key==="R"){ reset(); return; }
+  if(/^[0-9]$/.test(e.key)){ press(e.key); return; }
+  if(KEYMAP[e.key]){ e.preventDefault(); press(KEYMAP[e.key]); }
+});
+
+/* ============================================================
+   9. オペレーター用パネル
+   ============================================================ */
+var ops=$("ops"),opsList=$("opsList"),opsLine=$("opsLine"),opsNote=$("opsNote"),opsStep=$("opsStep"),opsJson=$("opsJson");
+STEPS.forEach(function(st,i){
+  var d=document.createElement("div");
+  d.className="ops-item"; d.dataset.i=i;
+  d.innerHTML='<span class="n">'+(i+1)+'</span><span class="t"></span>';
+  opsList.appendChild(d);
+});
+function paintOps(){
+  var st=STEPS[S.step];
+  if(S.phase==="done"){
+    opsLine.textContent="完了です。お疲れさまでした。";
+    opsNote.textContent="RESET を3秒長押し、またはこのパネルの「最初から」で次の人へ。";
+  }else if(S.phase==="error"){
+    opsLine.textContent="操作が違います。RESET を押してください。";
+    opsNote.textContent="エラー "+S.err+"（"+ERRMSG[S.err]+"）。RESET すると同じ手順からやり直せます。";
+  }else if(!S.power){
+    opsLine.textContent=STEPS[0].line();
+    opsNote.textContent=STEPS[0].note;
+  }else if(st){
+    opsLine.textContent=st.line();
+    opsNote.textContent=(typeof st.note==="function")?st.note():st.note;
+  }
+  var cl=0;
+  for(var ti=0;ti<TASKS.length;ti++){ if(S.phase==="done"||S.step>TASKS[ti].last) cl++; }
+  opsStep.textContent="TASK "+cl+"/"+TASKS.length+" · STEP "+(S.phase==="done"?STEPS.length:S.step)+"/"+STEPS.length;
+  [].forEach.call(opsList.children,function(d,i){
+    d.classList.toggle("cur",i===S.step&&S.phase!=="done");
+    d.classList.toggle("past",i<S.step||S.phase==="done");
+    d.querySelector(".t").textContent=STEPS[i].listLine||STEPS[i].line();
+  });
+  if(!opsJson.hidden) opsJson.textContent=JSON.stringify(getState(),null,1);
+}
+function toggleOps(){ ops.classList.toggle("open"); }
+$("opstab").addEventListener("click",toggleOps);
+$("opsClose").addEventListener("click",toggleOps);
+$("opsReset").addEventListener("click",function(){ reset(); });
+$("opsSound").addEventListener("click",function(){
+  soundOn=!soundOn; this.setAttribute("aria-pressed",String(soundOn));
+  this.textContent=soundOn?"音 ON":"音 OFF";
+});
+$("opsJsonToggle").addEventListener("click",function(){
+  opsJson.hidden=!opsJson.hidden;
+  this.setAttribute("aria-pressed",String(!opsJson.hidden));
+  paintOps();
+});
+/* 銘板を3回タップでも開く */
+(function(){
+  var n=0,t=null;
+  $("mark").addEventListener("click",function(){
+    n++; clearTimeout(t); t=setTimeout(function(){n=0},600);
+    if(n>=3){ n=0; toggleOps(); }
+  });
+})();
+
+/* ============================================================
+   10. 外部連携用の state（将来 HintBot から参照）
+   ============================================================ */
+function getState(){
+  var st=STEPS[S.step];
+  return {
+    step:S.phase==="done"?STEPS.length:S.step,
+    stepId:S.phase==="done"?"DONE":(st?st.id:null),
+    phase:S.phase,
+    power:S.power,
+    mode:S.power&&S.step>=4?S.mode:null,
+    seq:S.seqShown?S.seq:null,
+    dial:S.dial,
+    pressure:Number(S.pressure.toFixed(1)),
+    temp:Math.round(S.temp),
+    error:S.phase==="error"?S.err:null,
+    hint:S.phase==="done"?"完了です。お疲れさまでした。"
+        :S.phase==="error"?"操作が違います。RESET を押してください。"
+        :(st?st.line():null)
+  };
+}
+window.X42={ getState:getState, reset:reset, press:press, hold:hold };
+
+/* ============================================================
+   11. 画面フィット
+   ============================================================ */
+var stage=$("stage");
+function fit(){
+  var s=Math.min(window.innerWidth/1180,window.innerHeight/790);
+  stage.style.transform="scale("+s+")";
+}
+window.addEventListener("resize",fit);
+window.addEventListener("orientationchange",function(){ setTimeout(fit,120); });
+
+/* 起動 */
+fit();
+reset();
+if(/[?&]ops=1/.test(location.search)) ops.classList.add("open");
+
+/* オフライン用 Service Worker。
+   sw.js が無い環境（Artifact プレビュー等）では失敗するが、デモ本体には影響しない。 */
+if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("./sw.js").catch(function(){});
+  });
+}
+})();
+</script>
+</body>
+</html>

@@ -294,6 +294,15 @@ body{
 }
 @keyframes alarmPulse{0%,100%{opacity:.18}50%{opacity:1}}
 
+/* 運用者用の隠しボタン。右下のネジに重ねてある（見えないが位置は覚えやすい）。
+   鳴っていれば止める／止まっていればリセットして再開。 */
+.hidden-ctl{
+  position:absolute;right:0;bottom:0;width:54px;height:54px;z-index:40;
+  border:0;background:transparent;-webkit-appearance:none;cursor:default;
+}
+.hidden-ctl:focus{outline:none}
+.hidden-ctl:focus-visible{outline:2px solid var(--amber);outline-offset:-4px}
+
 /* ---------- スタート画面 ---------- */
 .start-veil{
   position:absolute;inset:0;z-index:30;border-radius:14px;
@@ -621,6 +630,8 @@ body{
       <div class="sv-note">説明書はありません。<br>スマートグラスの指示に従って操作してください。</div>
       <button class="sv-btn" id="startBtn">START</button>
     </div>
+
+    <button class="hidden-ctl" id="hiddenCtl" aria-label="運用者用: アラート停止 / 再開" tabindex="-1"></button>
   </div>
 </div>
 
@@ -641,6 +652,7 @@ body{
   <div class="ops-foot">
     <button class="ops-btn" id="opsSound" aria-pressed="true">音 ON</button>
     <button class="ops-btn" id="opsReset">最初から</button>
+    <button class="ops-btn" id="opsAlarm">アラート停止 / 再開</button>
     <button class="ops-btn" id="opsJsonToggle" aria-pressed="false">state</button>
     <pre class="ops-json" id="opsJson" hidden></pre>
   </div>
@@ -746,17 +758,6 @@ function startAlarm(){
 function stopAlarm(){
   clearInterval(alarmTimer); alarmTimer=null;
   document.querySelector(".panel").classList.remove("alarm");
-}
-
-/* 開始の合図を声に出す。グラスのマイクがこれを拾って HintBot 側も動き出す。 */
-function speak(text){
-  if(!soundOn) return;
-  try{
-    var u=new SpeechSynthesisUtterance(text);
-    u.lang="ja-JP"; u.rate=1.0;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  }catch(e){}
 }
 
 /* ============================================================
@@ -964,7 +965,7 @@ function paint(){
   }else if(S.phase==="done"){
     msg="運転を開始しました。すべてのタスク完了です"; tone="good";
   }else if(!S.power){
-    msg=STEPS[0].msg;
+    msg=STEPS[0].msg; tone="warn";   /* 異常停止＝警報が鳴っている状態 */
   }else{
     msg=st?(typeof st.msg==="function"?st.msg():st.msg):"";
     if(st&&st.warn) tone="warn";
@@ -1204,6 +1205,7 @@ function hold(key,ms){
 
   if(key==="POWER"&&!S.power&&ms>=1500){
     S.power=true;
+    stopAlarm(); hideAlert();      /* 起動＝異常停止の解消。ここで警報が止まる */
     SFX.boot(); lampTest();
     return;
   }
@@ -1273,7 +1275,7 @@ document.querySelectorAll(".btn").forEach(function(btn){
 /* ============================================================
    8.5 スタート
    ============================================================ */
-$("startBtn").addEventListener("click",function(){
+function beginDemo(){
   $("startVeil").classList.add("hide");
   /* iOS は「ユーザー操作起点」でないと音が出せない。ここで鳴らせる状態にしておく */
   try{
@@ -1281,11 +1283,21 @@ $("startBtn").addEventListener("click",function(){
     if(actx.state==="suspended") actx.resume();
   }catch(e){}
   S.t0=Date.now();
-  SFX.boot();
-  /* 開始を声に出す＝グラスのマイクが拾い、HintBot 側のセッションもここから始まる */
-  speak("機械操作デモを開始します。指示をお願いします。");
+  /* 開始した瞬間から警報が鳴っている＝「止めないと」という状況からデモを始める。
+     機械は異常停止（電源が落ちている）状態なので、起動が最初の一手になる。 */
+  startAlarm();
+  showAlert("ALARM","UNIT SHUTDOWN");
   paint();
-});
+}
+$("startBtn").addEventListener("click",beginDemo);
+
+/* 運用者用の隠しコマンド（右下のネジ）。
+   鳴っている → 止める ／ 止まっている → リセットして最初から鳴らし直す。 */
+function hiddenToggle(){
+  if(alarmTimer){ stopAlarm(); hideAlert(); }
+  else { reset(); beginDemo(); }
+}
+$("hiddenCtl").addEventListener("click",hiddenToggle);
 
 /* キーボード（PC 検証用） */
 var KEYMAP={q:"K1",w:"K2",e:"S3",r:"AUX",m:"MODE",Enter:"ENTER",Backspace:"CLR",
@@ -1344,6 +1356,7 @@ function toggleOps(){ ops.classList.toggle("open"); }
 $("opstab").addEventListener("click",toggleOps);
 $("opsClose").addEventListener("click",toggleOps);
 $("opsReset").addEventListener("click",function(){ reset(); });
+$("opsAlarm").addEventListener("click",hiddenToggle);
 $("opsSound").addEventListener("click",function(){
   soundOn=!soundOn; this.setAttribute("aria-pressed",String(soundOn));
   this.textContent=soundOn?"音 ON":"音 OFF";

@@ -777,21 +777,23 @@ var timers=[];
 function later(fn,ms){ var t=setTimeout(fn,ms); timers.push(t); return t; }
 function clearTimers(){ timers.forEach(function(t){clearTimeout(t);clearInterval(t);}); timers=[]; }
 
-/* 3つのロックを順に解除するだけ。手順はこれだけ。 */
+/* 3つのロックを順に解除するだけ。手順はこれだけ。
+   line   = ふだん出す指示（短く）
+   detail = 「わかりません」と言われたときだけ使う詳しい説明 */
 var STEPS=[
-  { id:"L1", key:"K2",  hold:0,
-    line:"K2 のボタンを押してください。",
-    where:"画面の右上、FUNCTION と書かれた列の左から2番目です。",
+  { id:"L1", key:"K2", hold:0,
+    line:"K2 を押して。",
+    detail:"右上に K1 K2 S3 AUX と4つ並んでいます。その左から2番目です。",
     note:"正解は K2。他を押しても弾くだけで、ペナルティは無し。" },
 
-  { id:"L2", key:"V2",  hold:0,
-    line:"青い V2 のバルブを押してください。",
-    where:"一番下の段、色のついた3つのボタンの真ん中、青いものです。",
-    note:"正解は V2（青）。赤 V1・黄 V3 は弾かれる。" },
+  { id:"L2", key:"V2", hold:0,
+    line:"次は V2 を押して。",
+    detail:"一番下の段に色つきのボタンが3つあります。その真ん中、青いのが V2 です。",
+    note:"正解は V2。V1（赤）・V3（黄）は弾かれる。" },
 
-  { id:"L3", key:"S3",  hold:2000,
-    line:"最後です。S3 を2秒間、長押ししてください。",
-    where:"右上の FUNCTION の列、左から3番目です。押しっぱなしにしてください。",
+  { id:"L3", key:"S3", hold:2000,
+    line:"最後。S3 を2秒長押しして。",
+    detail:"右上の4つのうち左から3番目が S3。押したまま2秒数えてください。",
     note:"長押し2秒。短く押すと解除されない＝ここが一番つまずく。" }
 ];
 
@@ -1035,7 +1037,7 @@ function paintOps(){
     opsNote.textContent="押した瞬間からアラームが鳴り、"+STEPS[0].line+" が最初の指示になります。";
   }else if(st){
     opsLine.textContent=st.line;
-    opsNote.textContent="場所を聞かれたら → "+st.where+"　／　"+st.note;
+    opsNote.textContent="聞かれたら → "+st.detail+"　／　"+st.note;
   }
   opsStep.textContent="LOCK "+S.step+" / 3";
   [].forEach.call(opsList.children,function(d,i){
@@ -1078,8 +1080,7 @@ function getState(){
     locks:S.locks.slice(),
     remaining:3-S.step,
     stepId:S.phase==="done"?"DONE":(st?st.id:null),
-    hint:S.phase==="done"?"クリアです。お疲れさまでした。":(st?st.line:null),
-    where:st?st.where:null
+    hint:S.phase==="done"?"クリアです。お疲れさまでした。":(st?st.line:null)
   };
 }
 window.X42={ getState:getState, reset:reset, press:press, hold:hold };

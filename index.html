@@ -263,7 +263,7 @@ body{
   flex-direction:column;align-items:center;justify-content:center;gap:12px;
   pointer-events:none;
   /* 濃くしすぎると圧力・温度が読めなくなる。数値が透ける濃さに留める */
-  background:radial-gradient(ellipse at center,rgba(62,8,4,.55),rgba(24,3,2,.72));
+  background:radial-gradient(ellipse at center,rgba(62,8,4,.42),rgba(24,3,2,.60));
 }
 .alert-veil.show{display:flex}
 .alert-veil .big{
@@ -1205,7 +1205,9 @@ function hold(key,ms){
 
   if(key==="POWER"&&!S.power&&ms>=1500){
     S.power=true;
-    stopAlarm(); hideAlert();      /* 起動＝異常停止の解消。ここで警報が止まる */
+    /* ここでは警報を止めない。起動しただけでは異常は解消していない。
+       「起動と自己診断」タスクを完了（ENTER で承認）した時点で popClear() が止める。
+       1手で鳴り止むと緊張感が最初の一手で終わってしまうため。 */
     SFX.boot(); lampTest();
     return;
   }

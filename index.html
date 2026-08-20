@@ -666,6 +666,15 @@ var STEPS=[
     line:function(){ return "POWER ボタンを 1.5 秒、長押ししてください。"; },
     note:"短く押しても起動しません（体験者はここで必ず詰まります）。" },
 
+  { id:"DIAG",  status:"SELF TEST", msg:"自己診断が完了していません",
+    line:function(){ return "K1 を押して、自己診断を実行してください。"; },
+    note:"起動直後は自己診断が必須。K1 以外を押すと E-07。" },
+
+  { id:"DIAGOK", status:"DIAG OK",
+    msg:function(){ return "診断コード "+S.diag+" ー 承認待ちです"; },
+    line:function(){ return "ENTER を押して、診断結果を承認してください。"; },
+    note:"承認すると解錠シーケンスに進みます。" },
+
   { id:"U1",    status:"LOCKED",   msg:"操作パネルはロックされています",
     line:function(){ return "K2 を押してください。"; },
     note:"解錠シーケンス 1/3。順番を間違えると E-01 でロックします。" },
@@ -695,11 +704,15 @@ var STEPS=[
     note:"打ち間違いは CLR で消せます。ENTER が違う値なら E-04。" },
 
   { id:"RAMP",  status:"PRESSURIZE", msg:"加圧しています…",
-    line:function(){ return "そのままお待ちください。圧力が上がります。"; },
-    note:"自動進行。ボタンを押しても何も起きません。" },
+    line:function(){ return "まもなく警報が鳴ります。鳴ったら K2 を押して止めてください。"; },
+    note:"自動進行。ここで T5 の1手目（警報停止）を先に伝えておく。" },
 
-  { id:"VALVE", status:"DEVIATION", msg:"圧力が上限を超えました", warn:true,
-    line:function(){ return "圧力が 40 を超えました。青い V2 バルブを押してください。"; },
+  { id:"ALM",   status:"ALARM",     msg:"警報が鳴っています", warn:true,
+    line:function(){ return "K2 を押して警報を止めてください。"; },
+    note:"K2 は解錠でも使ったボタン。文脈で意味が変わるので推測できない。K2 以外は E-05。" },
+
+  { id:"VALVE", status:"DEVIATION", msg:"圧力が上限を超えています", warn:true,
+    line:function(){ return "青い V2 のバルブを押して、圧力を下げてください。"; },
     note:"ここが「AIが状態を見て指示を変えている」と伝わる山場。V1／V3 は E-05。" },
 
   { id:"COOL",  status:"TEMP HIGH", msg:"圧力は安定。今度は温度が上限を超えました", warn:true,
@@ -715,14 +728,17 @@ var STEPS=[
     note:"完了で SYSTEM READY。所要時間が出ます。" }
 ];
 
-/* タスク＝「クリア！！」を出す区切り。last はそのタスクの最終ステップ index */
+/* タスク＝「クリア！！」を出す区切り。last はそのタスクの最終ステップ index。
+   HintBot の指示が 3 手たまるごとに 1 タスク完了になるよう境界を切ってある
+   （6タスク×3手＝18手）。片方だけ直すと粒度が崩れるので build_tree.py と対で保つこと。 */
 var TASKS=[
-  { name:"電源投入",      last:0  },
-  { name:"ロック解除",     last:3  },
-  { name:"認証コード入力",  last:4  },
-  { name:"運転条件の設定",  last:6  },
-  { name:"圧力異常の処置",  last:8  },
-  { name:"冷却と確認",     last:10 }
+  { name:"起動と自己診断",  last:2  },  // POWER長押し / K1診断 / ENTER承認
+  { name:"ロック解除",      last:5  },  // K2 / S3 / K1
+  { name:"認証コード入力",   last:6  },  // SEQ読み上げ / ダイヤル / ENTER
+  { name:"運転条件の設定",   last:8  },  // MODEをBに / ENTER確定 / 350+ENTER
+  { name:"圧力異常の処置",   last:11 },  // 警報予告 / 警報をK2で停止 / V2で減圧
+  { name:"冷却と確認",      last:13 }   // AUX長押しで冷却 / TEMP読み上げ / K2で確認
+  // 仕上げの S3 長押し(RUN)は「クリア！！」ではなく SYSTEM READY 演出で締める
 ];
 var ERRMSG={
   "E-01":"LOCK SEQ",
@@ -730,7 +746,8 @@ var ERRMSG={
   "E-03":"MODE ERR",
   "E-04":"SETPOINT",
   "E-05":"VALVE ERR",
-  "E-06":"CONFIRM"
+  "E-06":"CONFIRM",
+  "E-07":"SELF TEST"
 };
 
 /* ============================================================
@@ -745,6 +762,7 @@ function reset(){
     mode:MODES[[0,2,3][Math.floor(Math.random()*3)]],  /* B 以外から開始 */
     seq:String(Math.floor(Math.random()*9)+1)+String(Math.floor(Math.random()*10))+String(Math.floor(Math.random()*10)),
     seqShown:false,
+    diag:("0"+(Math.floor(Math.random()*89)+10)).slice(-2),  /* 自己診断コード（2桁） */
     dial:0,
     kb:"",
     pressure:0,
@@ -784,7 +802,7 @@ function paint(){
   }
 
   /* 表示灯 */
-  var lit=S.power&&S.step>=4;
+  var lit=S.power&&S.step>=6;      /* 解錠(U3=5)の後からモード灯が点く */
   ["A","B","C","D"].forEach(function(m){ setLamp("lamp"+m, lit&&S.mode===m); });
   setLamp("lampPWR",S.power);
   setLamp("lampALM",S.phase==="error"||(S.phase!=="done"&&st&&(st.id==="VALVE"||st.id==="COOL")));
@@ -802,7 +820,7 @@ function paint(){
     renderSeg($("segTemp"),pad(Math.round(S.temp),3));
     renderSeg($("segSeq"),S.seqShown?S.seq:"---");
     renderSeg($("segDial"),String(S.dial));
-    renderSeg($("segSetp"),S.kb?pad(S.kb,3):(S.step>6?"350":"---"));
+    renderSeg($("segSetp"),S.kb?pad(S.kb,3):(S.step>8?"350":"---"));
   }
   $("barPress").firstElementChild.style.width=Math.min(100,S.pressure/60*100)+"%";
   $("barPress").classList.toggle("hot",S.pressure>40);
@@ -818,7 +836,7 @@ function paint(){
   }else if(!S.power){
     msg=STEPS[0].msg;
   }else{
-    msg=st?st.msg:"";
+    msg=st?(typeof st.msg==="function"?st.msg():st.msg):"";
     if(st&&st.warn) tone="warn";
   }
   m.textContent=msg;
@@ -877,6 +895,19 @@ function fail(code){
   S.phase="error"; S.err=code; S.kb="";
   SFX.err();
   paint();
+}
+function runDiag(){
+  busy=true;
+  var i=0;
+  var iv=setInterval(function(){
+    i++;
+    statusText.textContent = (i%2) ? "TESTING" : "TESTING …";
+    if(i>=6){
+      clearInterval(iv); busy=false;
+      advance();                 /* → DIAGOK（診断コードの承認待ち） */
+    }
+  },200);
+  timers.push(iv);
 }
 function startRamp(){
   busy=true;
@@ -957,6 +988,16 @@ function press(key){
   var st=STEPS[S.step]; if(!st) return;
 
   switch(st.id){
+    case "DIAG":
+      if(key==="K1"){ runDiag(); return; }
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-07"); break;
+
+    case "DIAGOK":
+      if(key==="ENTER"){ advance(); return; }
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-07"); break;
+
     case "U1": step_unlock(key,"K2"); break;
     case "U2": step_unlock(key,"S3"); break;
     case "U3": step_unlock(key,"K1"); break;
@@ -982,6 +1023,11 @@ function press(key){
       fail("E-04"); break;
 
     case "RAMP": return;   /* 自動進行中 */
+
+    case "ALM":
+      if(key==="K2"){ advance(); return; }   /* 解錠でも使った K2 が、ここでは警報停止 */
+      if(key==="UP"||key==="DOWN"||key==="CLR") return;
+      fail("E-05"); break;
 
     case "VALVE":
       if(key==="V2"){ stabilize(); paint(); return; }
@@ -1168,7 +1214,7 @@ function getState(){
     stepId:S.phase==="done"?"DONE":(st?st.id:null),
     phase:S.phase,
     power:S.power,
-    mode:S.power&&S.step>=4?S.mode:null,
+    mode:S.power&&S.step>=6?S.mode:null,
     seq:S.seqShown?S.seq:null,
     dial:S.dial,
     pressure:Number(S.pressure.toFixed(1)),

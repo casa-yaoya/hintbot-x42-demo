@@ -1005,15 +1005,13 @@ var KEYMAP={q:"K1",w:"K2",e:"S3",r:"AUX",m:"MODE",Enter:"ENTER",Backspace:"CLR",
 document.addEventListener("keydown",function(e){
   if(e.repeat) return;
   if(e.key==="o"){ toggleOps(); return; }
-  if(e.key==="p"){ hold("POWER",9999); return; }
-  if(e.key==="h"){ /* 長押し代替: 現在ステップの長押し対象 */
+  if(e.key==="s"){ $("startBtn").click(); return; }
+  if(e.key==="h"){                       /* 長押し代替（いまの段が長押しを要求するなら発火） */
     var st=STEPS[S.step];
-    if(st&&st.id==="COOL") hold("AUX",9999);
-    else if(st&&st.id==="RUN") hold("S3",9999);
+    if(st&&st.hold) hold(st.key,st.hold);
     return;
   }
   if(e.key==="R"){ reset(); return; }
-  if(/^[0-9]$/.test(e.key)){ press(e.key); return; }
   if(KEYMAP[e.key]){ e.preventDefault(); press(KEYMAP[e.key]); }
 });
 
